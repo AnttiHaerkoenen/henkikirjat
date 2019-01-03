@@ -207,3 +207,8 @@ def extract_table(data_dir: str, input_file: str, output_path: str=None) -> pd.D
 
     table = fit_texts_into_grid(p['texts'], grid)
     return datatable_to_dataframe(table)
+
+
+if __name__ == '__main__':
+    tbl = extract_table()
+    print(tbl)
