@@ -210,5 +210,5 @@ def extract_table(data_dir: str, input_file: str, output_path: str=None) -> pd.D
 
 
 if __name__ == '__main__':
-    tbl = extract_table()
+    # todo tbl = extract_table(input_file="", data_dir=r"../data")
     print(tbl)
