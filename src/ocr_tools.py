@@ -1,3 +1,10 @@
+"""
+PDF tabular data extraction
+
+Based on:
+https://github.com/WZBSocialScienceCenter/pdftabextract
+"""
+
 import os
 import re
 from math import radians, degrees
@@ -23,10 +30,10 @@ def save_image_w_lines(img_proc_obj, img_file, output_path):
     cv2.imwrite(img_lines_file, img_lines)
 
 
-def extract_table(data_dir: str, input_file: str, output_path: str=None) -> pd.DataFrame:
+def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num: int = 1) -> pd.DataFrame:
     if not os.path.isdir(data_dir):
         raise NotADirectoryError(f"Not a valid directory name: {data_dir}")
-    if not os.path.isfile(input_file):
+    if not os.path.isfile(os.path.join(data_dir, input_file)):
         raise FileNotFoundError(f"No file named {input_file}")
     if not output_path:
         output_path = data_dir
@@ -34,9 +41,8 @@ def extract_table(data_dir: str, input_file: str, output_path: str=None) -> pd.D
     os.chdir(data_dir)
     os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml")
 
-    xml_tree, xml_root = read_xml(os.path.join(data_dir, f"{input_file}.xml"))
+    xml_tree, xml_root = read_xml(f"{input_file}.xml")
     pages = parse_pages(xml_root)
-    p_num = 3
     p = pages[p_num]
 
     print(f"detecting lines in image {input_file}...")
@@ -210,5 +216,5 @@ def extract_table(data_dir: str, input_file: str, output_path: str=None) -> pd.D
 
 
 if __name__ == '__main__':
-    # todo tbl = extract_table(input_file="", data_dir=r"../data")
+    tbl = extract_table(input_file="esim.pdf", data_dir=r"../data")
     print(tbl)
