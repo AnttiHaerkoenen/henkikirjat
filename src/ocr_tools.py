@@ -3,6 +3,9 @@ PDF tabular data extraction
 
 Based on:
 https://github.com/WZBSocialScienceCenter/pdftabextract
+WZBSocialScienceCenter/pdftabextract is licensed under the Apache License 2.0
+
+Modified by Antti Härkönen
 """
 
 import os
@@ -30,7 +33,13 @@ def save_image_w_lines(img_proc_obj, img_file, output_path):
     cv2.imwrite(img_lines_file, img_lines)
 
 
-def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num: int = 1) -> pd.DataFrame:
+def table_extractor(
+        data_dir: str,
+        input_file: str,
+        output_path: str = None,
+        p_num: int = 1,
+        min_col_width = 10,
+) -> pd.DataFrame:
     if not os.path.isdir(data_dir):
         raise NotADirectoryError(f"Not a valid directory name: {data_dir}")
     if not os.path.isfile(os.path.join(data_dir, input_file)):
@@ -39,7 +48,7 @@ def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num
         output_path = data_dir
 
     os.chdir(data_dir)
-    os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml")
+    os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml -f {p_num} -l {p_num}")
 
     xml_tree, xml_root = read_xml(f"{input_file}.xml")
     pages = parse_pages(xml_root)
@@ -56,12 +65,14 @@ def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num
     page_scaling_y = img_proc_obj.img_h / p['height']  # scaling in Y-direction
 
     # detect the lines
-    lines_hough = img_proc_obj.detect_lines(canny_kernel_size=3,
-                                            canny_low_thresh=50,
-                                            canny_high_thresh=150,
-                                            hough_rho_res=1,
-                                            hough_theta_res=np.pi / 500,
-                                            hough_votes_thresh=round(0.2 * img_proc_obj.img_w))
+    lines_hough = img_proc_obj.detect_lines(
+        canny_kernel_size=3,
+        canny_low_thresh=50,
+        canny_high_thresh=150,
+        hough_rho_res=1,
+        hough_theta_res=np.pi / 500,
+        hough_votes_thresh=round(0.2 * img_proc_obj.img_w),
+    )
     print(f"> found {len(lines_hough)} lines")
 
     save_image_w_lines(img_proc_obj, imgfilebasename, output_path)
@@ -100,10 +111,9 @@ def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num
 
     print(f"saving repaired XML file to '{repaired_xmlfile}'...")
     xml_tree.write(repaired_xmlfile)
-    MIN_COL_WIDTH = 60  # minimum width of a column in pixels, measured in the scanned pages
 
     # cluster the detected *vertical* lines using find_clusters_1d_break_dist as simple clustering function
-    # (break on distance MIN_COL_WIDTH/2)
+    # (break on distance min_col_width/2)
     # additionally, remove all cluster sections that are considered empty
     # a cluster is considered empty when the number of text boxes in it is below 10% of the median number of text boxes
     # per cluster section
@@ -113,7 +123,7 @@ def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num
         remove_empty_cluster_sections_use_texts=p['texts'],
         remove_empty_cluster_sections_n_texts_ratio=0.1,
         remove_empty_cluster_sections_scaling=page_scaling_x,
-        dist_thresh=MIN_COL_WIDTH / 2,
+        dist_thresh=min_col_width / 2,
     )
     print(f"> found {len(vertical_clusters)} clusters")
 
@@ -203,6 +213,7 @@ def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num
     print(f"> page {p_num}: {len(page_rowpos)} lines between [{top_y}, {bottom_y}]")
 
     grid = make_grid_from_positions(page_colpos, page_rowpos)
+    print(f"Grid: {grid}")
     n_rows = len(grid)
     n_cols = len(grid[0])
     print(f"> page {p_num}: grid with {n_rows} rows, {n_cols} columns")
@@ -216,5 +227,5 @@ def extract_table(data_dir: str, input_file: str, output_path: str = None, p_num
 
 
 if __name__ == '__main__':
-    tbl = extract_table(input_file="esim.pdf", data_dir=r"../data")
+    tbl = table_extractor(r"../data", r"esim.pdf")
     print(tbl)
