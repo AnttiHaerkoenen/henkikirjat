@@ -179,7 +179,7 @@ def table_extractor(
     n_cols = len(grid[0]) if n_rows > 0 else 0
     print(f"> page {p_num}: grid with {n_rows} rows, {n_cols} columns")
 
-    page_grids_file = os.path.join(output_path, output_files_basename + '.pagegrids_p3_only.json')
+    page_grids_file = os.path.join(output_path, output_files_basename + '.pagegrids.json')
     print(f"saving page grids JSON file to '{page_grids_file}'")
     save_page_grids({p_num: grid}, page_grids_file)
 
