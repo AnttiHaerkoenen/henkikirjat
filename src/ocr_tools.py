@@ -9,20 +9,34 @@ Modified by Antti Härkönen
 """
 
 import os
-import re
 from math import radians, degrees
 
 import pandas as pd
 import numpy as np
 import cv2
-from pdftabextract.common import save_page_grids, read_xml, parse_pages, all_a_in_b,\
-    ROTATION, SKEW_X, SKEW_Y, DIRECTION_VERTICAL
-from pdftabextract.extract import fit_texts_into_grid, datatable_to_dataframe, make_grid_from_positions
+from pdftabextract.common import (
+    save_page_grids,
+    read_xml,
+    parse_pages,
+    ROTATION,
+    SKEW_X,
+    SKEW_Y,
+)
+from pdftabextract.extract import (
+    fit_texts_into_grid,
+    datatable_to_dataframe,
+    make_grid_from_positions
+)
 from pdftabextract.geom import pt
-from pdftabextract.textboxes import rotate_textboxes, deskew_textboxes, \
-    border_positions_from_texts, split_texts_by_positions, join_texts
+from pdftabextract.textboxes import (
+    rotate_textboxes,
+    deskew_textboxes,
+)
 from pdftabextract import imgproc
-from pdftabextract.clustering import find_clusters_1d_break_dist, calc_cluster_centers_1d, zip_clusters_and_values
+from pdftabextract.clustering import (
+    find_clusters_1d_break_dist,
+    calc_cluster_centers_1d,
+)
 
 
 def save_image_w_lines(img_proc_obj, img_file, output_path):
@@ -36,9 +50,10 @@ def save_image_w_lines(img_proc_obj, img_file, output_path):
 def table_extractor(
         data_dir: str,
         input_file: str,
-        output_path: str = None,
-        p_num: int = 1,
-        min_col_width = 10,
+        output_path: str,
+        p_num: int,
+        min_col_width: int,
+        min_row_height: int,
 ) -> pd.DataFrame:
     if not os.path.isdir(data_dir):
         raise NotADirectoryError(f"Not a valid directory name: {data_dir}")
@@ -51,18 +66,17 @@ def table_extractor(
     os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml -f {p_num} -l {p_num}")
 
     xml_tree, xml_root = read_xml(f"{input_file}.xml")
-    pages = parse_pages(xml_root)
-    p = pages[p_num]
+    page = parse_pages(xml_root)[p_num]
 
     print(f"detecting lines in image {input_file}...")
 
-    imgfilebasename = p['image'][:p['image'].rindex('.')]
-    imgfile = os.path.join(data_dir, p['image'])
+    imgfilebasename = page['image'][:page['image'].rindex('.')]
+    imgfile = os.path.join(data_dir, page['image'])
     img_proc_obj = imgproc.ImageProc(imgfile)
 
     # calculate the scaling of the image file in relation to the text boxes coordinate system dimensions
-    page_scaling_x = img_proc_obj.img_w / p['width']  # scaling in X-direction
-    page_scaling_y = img_proc_obj.img_h / p['height']  # scaling in Y-direction
+    page_scaling_x = img_proc_obj.img_w / page['width']  # scaling in X-direction
+    page_scaling_y = img_proc_obj.img_h / page['height']  # scaling in Y-direction
 
     # detect the lines
     lines_hough = img_proc_obj.detect_lines(
@@ -93,10 +107,10 @@ def table_extractor(
     needs_fix = True
     if rot_or_skew_type == ROTATION:
         print("> rotating back by %f°" % -degrees(rot_or_skew_radians))
-        rotate_textboxes(p, -rot_or_skew_radians, pt(0, 0))
+        rotate_textboxes(page, -rot_or_skew_radians, pt(0, 0))
     elif rot_or_skew_type in (SKEW_X, SKEW_Y):
         print(f"> deskewing in direction '{rot_or_skew_type}' by {-degrees(rot_or_skew_radians)}°")
-        deskew_textboxes(p, -rot_or_skew_radians, rot_or_skew_type, pt(0, 0))
+        deskew_textboxes(page, -rot_or_skew_radians, rot_or_skew_type, pt(0, 0))
     else:
         needs_fix = False
         print("> no page rotation / skew found")
@@ -120,7 +134,7 @@ def table_extractor(
     vertical_clusters = img_proc_obj.find_clusters(
         imgproc.DIRECTION_VERTICAL,
         find_clusters_1d_break_dist,
-        remove_empty_cluster_sections_use_texts=p['texts'],
+        remove_empty_cluster_sections_use_texts=page['texts'],
         remove_empty_cluster_sections_n_texts_ratio=0.1,
         remove_empty_cluster_sections_scaling=page_scaling_x,
         dist_thresh=min_col_width / 2,
@@ -137,95 +151,50 @@ def table_extractor(
     print(f'found {len(page_colpos)} column borders:')
     print(page_colpos)
 
-    words_in_footer = ('anzeige', 'annahme', 'ala')
-    pttrn_table_row_beginning = re.compile(r'^[\d Oo][\d Oo]{2,} +[A-ZÄÖÜ]')
-
-    # right border of the second column
-    col2_rightborder = page_colpos[2]
-
-    # calculate median text box height
-    median_text_height = np.median([t['height'] for t in p['texts']])
-
-    # get all texts in the first two columns with a "usual" textbox height
-    # we will only use these text boxes in order to determine the line positions because they are more "stable"
-    # otherwise, especially the right side of the column header can lead to problems detecting the first table row
-    text_height_deviation_thresh = median_text_height / 2
-    texts_cols_1_2 = [t for t in p['texts']
-                      if t['right'] <= col2_rightborder
-                         and abs(t['height'] - median_text_height) <= text_height_deviation_thresh]
-
-    # get all textboxes' top and bottom border positions
-    borders_y = border_positions_from_texts(texts_cols_1_2, DIRECTION_VERTICAL)
-
-    # break into clusters using half of the median text height as break distance
-    clusters_y = find_clusters_1d_break_dist(borders_y, dist_thresh=median_text_height/2)
-    clusters_w_vals = zip_clusters_and_values(clusters_y, borders_y)
-
-    # for each cluster, calculate the median as center
-    pos_y = calc_cluster_centers_1d(clusters_w_vals)
-    pos_y.append(p['height'])
-
-    # 1. try to find the top row of the table
-    texts_cols_1_2_per_line = split_texts_by_positions(
-        texts_cols_1_2,
-        pos_y,
-        DIRECTION_VERTICAL,
-        alignment='middle',
-        enrich_with_positions=True,
+    # same for horizontal clusters
+    horizontal_clusters = img_proc_obj.find_clusters(
+        imgproc.DIRECTION_HORIZONTAL,
+        find_clusters_1d_break_dist,
+        remove_empty_cluster_sections_use_texts=page['texts'],
+        remove_empty_cluster_sections_n_texts_ratio=0.1,
+        remove_empty_cluster_sections_scaling=page_scaling_y,
+        dist_thresh=min_row_height / 2,
     )
+    print(f"> found {len(horizontal_clusters)} clusters")
 
-    # go through the texts line per line
-    for line_texts, (line_top, line_bottom) in texts_cols_1_2_per_line:
-        line_str = join_texts(line_texts)
-        if pttrn_table_row_beginning.match(line_str):  # check if the line content matches the given pattern
-            top_y = line_top
-            break
-    else:
-        top_y = 0
-
-    # 2. try to find the bottom row of the table
-    min_footer_text_height = median_text_height * 1.5
-    min_footer_y_pos = p['height'] * 0.7
-    # get all texts in the lower 30% of the page that have are at least 50% bigger than the median textbox height
-    bottom_texts = [t for t in p['texts']
-                    if t['top'] >= min_footer_y_pos and t['height'] >= min_footer_text_height]
-    bottom_texts_per_line = split_texts_by_positions(
-        bottom_texts,
-        pos_y + [p['height']],  # always down to the end of the page
-        DIRECTION_VERTICAL,
-        alignment='middle',
-        enrich_with_positions=True,
+    img_w_clusters = img_proc_obj.draw_line_clusters(
+        imgproc.DIRECTION_HORIZONTAL,
+        horizontal_clusters,
     )
-    # go through the texts at the bottom line per line
-    page_span = page_colpos[-1] - page_colpos[0]
-    min_footer_text_width = page_span * 0.8
-    for line_texts, (line_top, line_bottom) in bottom_texts_per_line:
-        line_str = join_texts(line_texts)
-        has_wide_footer_text = any(t['width'] >= min_footer_text_width for t in line_texts)
-        # check if there's at least one wide text or if all of the required words for a footer match
-        if has_wide_footer_text or all_a_in_b(words_in_footer, line_str):
-            bottom_y = line_top
-            break
-    else:
-        bottom_y = p['height']
+    save_img_file = os.path.join(output_path, f'{imgfilebasename}-horizontal-clusters.png')
+    print(f"> saving image with detected horizontal clusters to '{save_img_file}'")
+    cv2.imwrite(save_img_file, img_w_clusters)
 
-    page_rowpos = [y for y in pos_y if top_y <= y <= bottom_y]
-    print(f"> page {p_num}: {len(page_rowpos)} lines between [{top_y}, {bottom_y}]")
+    page_rowpos = np.array(calc_cluster_centers_1d(horizontal_clusters)) / page_scaling_y
+    print(f'found {len(page_rowpos)} row borders:')
+    print(page_rowpos)
 
     grid = make_grid_from_positions(page_colpos, page_rowpos)
-    print(f"Grid: {grid}")
     n_rows = len(grid)
-    n_cols = len(grid[0])
+    n_cols = len(grid[0]) if n_rows > 0 else 0
     print(f"> page {p_num}: grid with {n_rows} rows, {n_cols} columns")
 
     page_grids_file = os.path.join(output_path, output_files_basename + '.pagegrids_p3_only.json')
     print(f"saving page grids JSON file to '{page_grids_file}'")
     save_page_grids({p_num: grid}, page_grids_file)
 
-    table = fit_texts_into_grid(p['texts'], grid)
+    table = fit_texts_into_grid(page['texts'], grid)
     return datatable_to_dataframe(table)
 
 
 if __name__ == '__main__':
-    tbl = table_extractor(r"../data", r"esim.pdf")
-    print(tbl)
+    tbl = table_extractor(
+        r"../data",
+        r"esim.pdf",
+        None,
+        1,
+        100,
+        100,
+    )
+    print(tbl.values)
+    print(tbl.iloc[1,1])

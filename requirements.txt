@@ -1,5 +1,5 @@
+opencv
 pandas
 numpy
 pdftabextract
-opencv
 fire

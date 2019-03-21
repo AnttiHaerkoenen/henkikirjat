@@ -3,6 +3,6 @@
 cd ../data
 pwd
 sudo convert *.jpg +compress esim.pdf
-echo Pdf created
+echo pdf created
 sudo chown -R antth esim.pdf
-echo Ownership changed
+echo ownership changed
