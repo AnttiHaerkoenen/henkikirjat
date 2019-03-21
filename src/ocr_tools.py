@@ -21,11 +21,12 @@ from pdftabextract.common import (
     ROTATION,
     SKEW_X,
     SKEW_Y,
+    DIRECTION_VERTICAL,
 )
 from pdftabextract.extract import (
     fit_texts_into_grid,
     datatable_to_dataframe,
-    make_grid_from_positions
+    make_grid_from_positions,
 )
 from pdftabextract.geom import pt
 from pdftabextract.textboxes import (
@@ -37,6 +38,24 @@ from pdftabextract.clustering import (
     find_clusters_1d_break_dist,
     calc_cluster_centers_1d,
 )
+
+
+def split_page(
+        image: str,
+        data_dir: str,
+        position: float = 0.5,
+) -> tuple or None:
+    imgfile = os.path.join(data_dir, image)
+    img_proc_obj = imgproc.ImageProc(imgfile)
+    image_1, image_2 = img_proc_obj.split_image(
+        position * img_proc_obj.img_w,
+        direction=DIRECTION_VERTICAL,
+    )
+    output_filename_1 = os.path.join(data_dir, f'{image}L')
+    output_filename_2 = os.path.join(data_dir, f'{image}R')
+    cv2.imwrite(output_filename_1, image_1)
+    cv2.imwrite(output_filename_2, image_2)
+    print('split images saved')
 
 
 def save_image_w_lines(img_proc_obj, img_file, output_path):
@@ -75,8 +94,10 @@ def table_extractor(
     img_proc_obj = imgproc.ImageProc(imgfile)
 
     # calculate the scaling of the image file in relation to the text boxes coordinate system dimensions
-    page_scaling_x = img_proc_obj.img_w / page['width']  # scaling in X-direction
-    page_scaling_y = img_proc_obj.img_h / page['height']  # scaling in Y-direction
+    page_scaling_x = img_proc_obj.img_w / page['width']
+    # scaling in X-direction
+    page_scaling_y = img_proc_obj.img_h / page['height']
+    # scaling in Y-direction
 
     # detect the lines
     lines_hough = img_proc_obj.detect_lines(
@@ -190,7 +211,7 @@ def table_extractor(
 if __name__ == '__main__':
     tbl = table_extractor(
         r"../data",
-        r"esim.pdf",
+        r"transkribus.pdf",
         None,
         1,
         100,
