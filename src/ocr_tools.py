@@ -10,6 +10,8 @@ Modified by Antti Härkönen
 
 import os
 from math import radians, degrees
+from xml.etree import ElementTree
+from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
@@ -21,7 +23,6 @@ from pdftabextract.common import (
     ROTATION,
     SKEW_X,
     SKEW_Y,
-    DIRECTION_VERTICAL,
 )
 from pdftabextract.extract import (
     fit_texts_into_grid,
@@ -33,29 +34,11 @@ from pdftabextract.textboxes import (
     rotate_textboxes,
     deskew_textboxes,
 )
-from pdftabextract import imgproc
+from pdftabextract.imgproc import ImageProc
 from pdftabextract.clustering import (
     find_clusters_1d_break_dist,
     calc_cluster_centers_1d,
 )
-
-
-def split_page(
-        image: str,
-        data_dir: str,
-        position: float = 0.5,
-) -> tuple or None:
-    imgfile = os.path.join(data_dir, image)
-    img_proc_obj = imgproc.ImageProc(imgfile)
-    image_1, image_2 = img_proc_obj.split_image(
-        position * img_proc_obj.img_w,
-        direction=DIRECTION_VERTICAL,
-    )
-    output_filename_1 = os.path.join(data_dir, f'{image}L')
-    output_filename_2 = os.path.join(data_dir, f'{image}R')
-    cv2.imwrite(output_filename_1, image_1)
-    cv2.imwrite(output_filename_2, image_2)
-    print('split images saved')
 
 
 def save_image_w_lines(img_proc_obj, img_file, output_path):
@@ -66,6 +49,46 @@ def save_image_w_lines(img_proc_obj, img_file, output_path):
     cv2.imwrite(img_lines_file, img_lines)
 
 
+def repair_image(
+        xml_tree: ElementTree,
+        img_proc_obj: ImageProc,
+        page: OrderedDict,
+        img_file: str,
+        output_path: str,
+):
+    for _ in range(10):
+        # find rotation or skew
+        # the parameters are:
+        # 1. the minimum threshold in radians for a rotation to be counted as such
+        # 2. the maximum threshold for the difference between horizontal and vertical line rotation (to detect skew)
+        # 3. an optional threshold to filter out "stray" lines whose angle is too far apart from the median angle of
+        #    all other lines that go in the same direction (no effect here)
+        rot_or_skew_type, rot_or_skew_radians = img_proc_obj.find_rotation_or_skew(
+            radians(0.5),
+            radians(1),
+            omit_on_rot_thresh=radians(0.5),
+        )
+
+        # rotate back or deskew text boxes
+        if rot_or_skew_type == ROTATION:
+            print("> rotating back by %f°" % -degrees(rot_or_skew_radians))
+            rotate_textboxes(page, -rot_or_skew_radians, pt(0, 0))
+        elif rot_or_skew_type in (SKEW_X, SKEW_Y):
+            print(f"> deskewing in direction '{rot_or_skew_type}' by {-degrees(rot_or_skew_radians)}°")
+            deskew_textboxes(page, -rot_or_skew_radians, rot_or_skew_type, pt(0, 0))
+        else:
+            print("> no page rotation / skew found")
+            break
+
+    save_image_w_lines(img_proc_obj, imgfile_basename + '-repaired', output_path)
+
+    output_files_basename = img_file[:img_file.rindex('.')]
+    repaired_xmlfile = os.path.join(output_path, output_files_basename + '.repaired.xml')
+
+    print(f"saving repaired XML file to '{repaired_xmlfile}'...")
+    xml_tree.write(repaired_xmlfile)
+
+
 def table_extractor(
         data_dir: str,
         input_file: str,
@@ -74,10 +97,25 @@ def table_extractor(
         min_col_width: int,
         min_row_height: int,
 ) -> pd.DataFrame:
+    """
+    Extracts table from OCR:d table
+    :param data_dir:
+    :param input_file:
+    :param output_path:
+    :param p_num:
+    :param min_col_width:
+    :param min_row_height:
+    :return:
+    """
     if not os.path.isdir(data_dir):
         raise NotADirectoryError(f"Not a valid directory name: {data_dir}")
+
     if not os.path.isfile(os.path.join(data_dir, input_file)):
         raise FileNotFoundError(f"No file named {input_file}")
+
+    if not isinstance(p_num, int):
+        raise ValueError(f"{p_num} is not a valid page number")
+
     if not output_path:
         output_path = data_dir
 
@@ -91,13 +129,11 @@ def table_extractor(
 
     imgfilebasename = page['image'][:page['image'].rindex('.')]
     imgfile = os.path.join(data_dir, page['image'])
-    img_proc_obj = imgproc.ImageProc(imgfile)
+    img_proc_obj = ImageProc(imgfile)
 
     # calculate the scaling of the image file in relation to the text boxes coordinate system dimensions
     page_scaling_x = img_proc_obj.img_w / page['width']
-    # scaling in X-direction
     page_scaling_y = img_proc_obj.img_h / page['height']
-    # scaling in Y-direction
 
     # detect the lines
     lines_hough = img_proc_obj.detect_lines(
@@ -106,7 +142,7 @@ def table_extractor(
         canny_high_thresh=150,
         hough_rho_res=1,
         hough_theta_res=np.pi / 500,
-        hough_votes_thresh=round(0.2 * img_proc_obj.img_w),
+        hough_votes_thresh=round(0.4 * img_proc_obj.img_w),
     )
     print(f"> found {len(lines_hough)} lines")
 
@@ -138,7 +174,10 @@ def table_extractor(
 
     if needs_fix:
         # rotate back or deskew detected lines
-        lines_hough = img_proc_obj.apply_found_rotation_or_skew(rot_or_skew_type, -rot_or_skew_radians)
+        lines_hough = img_proc_obj.apply_found_rotation_or_skew(
+            rot_or_skew_type,
+            -rot_or_skew_radians,
+        )
         save_image_w_lines(img_proc_obj, imgfilebasename + '-repaired', output_path)
 
     output_files_basename = input_file[:input_file.rindex('.')]
@@ -158,7 +197,7 @@ def table_extractor(
         remove_empty_cluster_sections_use_texts=page['texts'],
         remove_empty_cluster_sections_n_texts_ratio=0.1,
         remove_empty_cluster_sections_scaling=page_scaling_x,
-        dist_thresh=min_col_width / 2,
+        dist_thresh=min_col_width / 4,
     )
     print(f"> found {len(vertical_clusters)} clusters")
 
@@ -179,7 +218,7 @@ def table_extractor(
         remove_empty_cluster_sections_use_texts=page['texts'],
         remove_empty_cluster_sections_n_texts_ratio=0.1,
         remove_empty_cluster_sections_scaling=page_scaling_y,
-        dist_thresh=min_row_height / 2,
+        dist_thresh=min_row_height / 4,
     )
     print(f"> found {len(horizontal_clusters)} clusters")
 

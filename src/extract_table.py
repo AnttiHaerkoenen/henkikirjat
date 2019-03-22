@@ -17,12 +17,12 @@ from ocr_tools import table_extractor
 
 
 def extract_table(
-        data_dir: str,
         input_file: str,
+        data_dir: str,
         output_path: str = None,
         p_num: int = 1,
-        min_col_width=20,
-        min_row_height=20,
+        min_col_width=50,
+        min_row_height=50,
 ):
     tbl = table_extractor(
         data_dir=data_dir,
