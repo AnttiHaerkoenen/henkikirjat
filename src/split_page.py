@@ -10,21 +10,23 @@ from pdftabextract.common import DIRECTION_VERTICAL
 
 
 def split_page(
-        image: str,
+        img_file: str,
         data_dir: str,
         position: float = 0.5,
-) -> None:
+):
+
     if not 0 <= position <= 1:
         raise ValueError("position shoud be between 0 and 1")
-    input_filename = os.path.join(data_dir, image)
+
+    input_filename = os.path.join(data_dir, img_file)
     img_proc_obj = imgproc.ImageProc(input_filename)
     image_1, image_2 = img_proc_obj.split_image(
         position * img_proc_obj.img_w,
         direction=DIRECTION_VERTICAL,
     )
-    image_name = image.split('.')[0]
-    output_filename_1 = os.path.join(data_dir, f'{image_name}L.jpg')
-    output_filename_2 = os.path.join(data_dir, f'{image_name}R.jpg')
+    output_files_basename = img_file[:img_file.rindex('.')]
+    output_filename_1 = os.path.join(data_dir, f'{output_files_basename}L.jpg')
+    output_filename_2 = os.path.join(data_dir, f'{output_files_basename}R.jpg')
     cv2.imwrite(output_filename_1, image_1)
     cv2.imwrite(output_filename_2, image_2)
     print('split images saved')
