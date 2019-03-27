@@ -73,7 +73,7 @@ def repair_image(
 
         # rotate back or deskew text boxes
         if rot_or_skew_type == ROTATION:
-            print("> rotating back by %f°" % -degrees(rot_or_skew_radians))
+            print(f"> rotating back by {-degrees(rot_or_skew_radians)}")
             rotate_textboxes(page, -rot_or_skew_radians, pt(0, 0))
         elif rot_or_skew_type in (SKEW_X, SKEW_Y):
             print(f"> deskewing in direction '{rot_or_skew_type}' by {-degrees(rot_or_skew_radians)}°")
