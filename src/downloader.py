@@ -17,30 +17,30 @@ def download_series_from_na(numbers, folder):
     os.makedirs(folder, exist_ok=True)
     os.chdir(folder)
     print("Downloading...")
-    for i in numbers:
+    for k, v in numbers.items():
         try:
-            url = f"http://digi.narc.fi/digi/fetch_hqjpg.ka?kuid={i}"
+            url = f"http://digi.narc.fi/digi/fetch_hqjpg.ka?kuid={v}"
             response = requests.get(url, headers=headers, timeout=5)
             response.raise_for_status()
-            with open(f'{i}.jpg', 'wb') as fopen:
+            with open(f'{k}.jpg', 'wb') as fopen:
                 for chunk in response.iter_content(100_000):
                     fopen.write(chunk)
-            print(f"Page {i} downloaded.")
+            print(f"Page {k} downloaded.")
         except HTTPError:
-            print(f"HTTPError occured at page {i}.")
+            print(f"HTTPError occurred at page {k} (kuid: {v})")
         except ConnectionError as ce:
-            print(f"Connection error at page {i}: {ce}")
+            print(f"Connection error at page {k} (kuid: {v}): {ce}")
             return
     print(f"{len(numbers)} pages downloaded.")
 
 
-def get_pic_ids(url: str, start_page: int, last_page: int) -> list:
+def get_pic_ids(url: str, start_page: int, last_page: int) -> dict:
     """
     Gets kuid values for each archive page based on id.
     :param url: ukid-level page
     :param start_page: first page to get
     :param last_page: inclusive end of page range
-    :return: List of ints (kuid for scanned image files)
+    :return: Dict of ints (page: kuid for scanned image files)
     """
     response = requests.get(url, headers=headers, timeout=5)
     response.raise_for_status()
@@ -53,12 +53,12 @@ def get_pic_ids(url: str, start_page: int, last_page: int) -> list:
     response.raise_for_status()
     soup = bs4.BeautifulSoup(response.text, features="html.parser")
     options = soup.select('div')[1].select('div')[2].select('form')[0].select('option')
-    pages = [
-        int(page['value'])
+    pages = {
+        int(page.string): int(page['value'])
         for page
         in options
         if start_page <= int(page.string) <= last_page
-    ]
+    }
     return pages
 
 
