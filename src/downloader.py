@@ -11,6 +11,7 @@ headers = {
                   'AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/53.0.2785.143 Safari/537.36',
 }
+DIGINARC = 'http://digi.narc.fi/digi/'
 
 
 def download_series_from_na(numbers, folder):
@@ -19,7 +20,7 @@ def download_series_from_na(numbers, folder):
     print("Downloading...")
     for k, v in numbers.items():
         try:
-            url = f"http://digi.narc.fi/digi/fetch_hqjpg.ka?kuid={v}"
+            url = f"{DIGINARC}fetch_hqjpg.ka?kuid={v}"
             response = requests.get(url, headers=headers, timeout=5)
             response.raise_for_status()
             with open(f'{k}.jpg', 'wb') as fopen:
@@ -42,13 +43,17 @@ def get_pic_ids(url: str, start_page: int, last_page: int) -> dict:
     :param last_page: inclusive end of page range
     :return: Dict of ints (page: kuid for scanned image files)
     """
-    response = requests.get(url, headers=headers, timeout=5)
+    response = requests.get(
+        f'{url}',
+        headers=headers,
+        timeout=5,
+    )
     response.raise_for_status()
     soup = bs4.BeautifulSoup(response.text, features="html.parser")
     urls = soup.find_all(id='piclink')
     url_ = next(filter(lambda tag: int(tag.string) == start_page, urls))
     url_ = url_.get_attribute_list('href')[0]
-    url = f'http://digi.narc.fi/digi/{url_}'
+    url = f'{DIGINARC}{url_}'
     response = requests.get(url, headers=headers, timeout=5)
     response.raise_for_status()
     soup = bs4.BeautifulSoup(response.text, features="html.parser")
@@ -68,7 +73,7 @@ if __name__ == '__main__':
         '--url',
         dest='url',
         type=str,
-        help='Address of hakid-level unit',
+        help=f'Address of containing unit after {DIGINARC}',
     )
     parser.add_argument(
         '--first',
@@ -86,7 +91,7 @@ if __name__ == '__main__':
         '--dir',
         dest='directory',
         type=str,
-        help='Where to put downloaded files. Created if doesn\'t exist.',
+        help='Where to put downloaded files. Created if it doesn\'t exist.',
     )
     args = parser.parse_args()
     pages = get_pic_ids(args.url, args.first, args.last)
