@@ -47,12 +47,12 @@ def extract_table(
     :return:
     """
     hough_param = dict(
-        canny_kernel_size = canny_kernel_size,
-        canny_low_thresh = canny_low_thresh,
-        canny_high_thresh = canny_high_thresh,
-        hough_rho_res = hough_rho_res,
-        hough_theta_res = np.pi / hough_theta_coef,
-        hough_votes_coef = hough_votes_coef,
+        canny_kernel_size=canny_kernel_size,
+        canny_low_thresh=canny_low_thresh,
+        canny_high_thresh=canny_high_thresh,
+        hough_rho_res=hough_rho_res,
+        hough_theta_res=np.pi / hough_theta_coef,
+        hough_votes_coef=hough_votes_coef,
     )
     tbl = table_extractor(
         data_dir=data_dir,

@@ -16,7 +16,7 @@ def split_page(
 ):
 
     if not 0 <= position <= 1:
-        raise ValueError("position shoud be between 0 and 1")
+        raise ValueError("position should be between 0 and 1")
 
     input_filename = os.path.join(data_dir, img_file)
     img_proc_obj = imgproc.ImageProc(input_filename)

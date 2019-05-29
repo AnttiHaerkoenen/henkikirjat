@@ -16,6 +16,7 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 import cv2
+import fire
 from pdftabextract.common import (
     save_page_grids,
     read_xml,
@@ -41,7 +42,11 @@ from pdftabextract.clustering import (
 )
 
 
-def save_image_w_lines(img_proc_obj, img_file, output_path):
+def save_image_w_lines(
+        img_proc_obj,
+        img_file,
+        output_path
+):
     img_lines = img_proc_obj.draw_lines(orig_img_as_background=True)
     img_lines_file = os.path.join(output_path, f'{img_file}-lines-orig.png')
 
@@ -56,22 +61,29 @@ def repair_image(
         img_file: str,
         output_path: str,
 ):
-    img_file_basename = page['image'][:page['image'].rindex('.')]
+    """
+    Find rotation or skew and deskew or rotate boxes
+    parameters are:
+    1. the minimum threshold in radians for a rotation to be counted as such
+    2. the maximum threshold for the difference between horizontal and vertical line rotation (to detect skew)
+    3. an optional threshold to filter out "stray" lines whose angle is too far apart from the median angle of
+    all other lines that go in the same direction (no effect here)
 
+    :param xml_tree:
+    :param img_proc_obj:
+    :param page:
+    :param img_file:
+    :param output_path:
+    :return:
+    """
+    img_file_basename = page['image'][:page['image'].rindex('.')]
     for _ in range(10):
-        # find rotation or skew
-        # the parameters are:
-        # 1. the minimum threshold in radians for a rotation to be counted as such
-        # 2. the maximum threshold for the difference between horizontal and vertical line rotation (to detect skew)
-        # 3. an optional threshold to filter out "stray" lines whose angle is too far apart from the median angle of
-        #    all other lines that go in the same direction (no effect here)
         rot_or_skew_type, rot_or_skew_radians = img_proc_obj.find_rotation_or_skew(
             radians(0.5),
             radians(1),
             omit_on_rot_thresh=radians(0.5),
         )
 
-        # rotate back or deskew text boxes
         if rot_or_skew_type == ROTATION:
             print(f"> rotating back by {-degrees(rot_or_skew_radians)}")
             rotate_textboxes(page, -rot_or_skew_radians, pt(0, 0))
@@ -85,80 +97,22 @@ def repair_image(
     save_image_w_lines(img_proc_obj, img_file_basename + '-repaired', output_path)
 
     output_files_basename = img_file[:img_file.rindex('.')]
-    repaired_xmlfile = os.path.join(output_path, output_files_basename + '.repaired.xml')
+    repaired_xml_file = os.path.join(output_path, output_files_basename + '.repaired.xml')
 
-    print(f"saving repaired XML file to '{repaired_xmlfile}'...")
-    xml_tree.write(repaired_xmlfile)
+    print(f"saving repaired XML file to '{repaired_xml_file}'...")
+    xml_tree.write(repaired_xml_file)
 
 
-def table_extractor(
-        data_dir: str,
-        input_file: str,
-        output_path: str,
-        p_num: int,
-        min_col_width: int,
-        min_row_height: int,
-        **hough_param
-) -> pd.DataFrame:
-    """
-    Extracts table from OCR:d table
-    :param data_dir:
-    :param input_file:
-    :param output_path:
-    :param p_num:
-    :param min_col_width:
-    :param min_row_height:
-    :return:
-    """
-    if not os.path.isdir(data_dir):
-        raise NotADirectoryError(f"Not a valid directory name: {data_dir}")
-
-    if not os.path.isfile(os.path.join(data_dir, input_file)):
-        raise FileNotFoundError(f"No file named {input_file}")
-
-    if not isinstance(p_num, int):
-        raise ValueError(f"{p_num} is not a valid page number")
-
-    if not output_path:
-        output_path = data_dir
-
-    os.chdir(data_dir)
-    os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml -f {p_num} -l {p_num}")
-
-    xml_tree, xml_root = read_xml(f"{input_file}.xml")
-    page = parse_pages(xml_root)[p_num]
-
-    print(f"detecting lines in image {input_file}...")
-
-    img_file_basename = page['image'][:page['image'].rindex('.')]
-    img_file = os.path.join(data_dir, page['image'])
-    img_proc_obj = imgproc.ImageProc(img_file)
-    output_files_basename = img_file[:img_file.rindex('.')]
-
-    # calculate the scaling of the image file in relation to the text boxes coordinate system dimensions
-    page_scaling_x = img_proc_obj.img_w / page['width']
-    page_scaling_y = img_proc_obj.img_h / page['height']
-
-    # detect the lines
-    hough_param["hough_votes_thresh"] = round(hough_param["hough_votes_coef"] * img_proc_obj.img_w)
-    del hough_param["hough_votes_coef"]
-    lines_hough = img_proc_obj.detect_lines(**hough_param)
-    print(f"> found {len(lines_hough)} lines")
-
-    save_image_w_lines(
-        img_proc_obj,
-        img_file_basename,
-        output_path,
-    )
-
-    repair_image(
-        xml_tree,
+def get_grid_pos(
         img_proc_obj,
         page,
-        img_file,
+        page_scaling_x,
+        page_scaling_y,
+        min_col_width,
+        min_row_height,
         output_path,
-    )
-
+        img_file_basename,
+):
     # cluster the detected *vertical* lines using find_clusters_1d_break_dist as simple clustering function
     # (break on distance min_col_width / 2)
     # additionally, remove all cluster sections that are considered empty
@@ -207,11 +161,23 @@ def table_extractor(
     print(f'found {len(page_row_pos)} row borders:')
     print(page_row_pos)
 
+    return page_col_pos, page_row_pos
+
+
+def extract_data_frame(
+        page_col_pos,
+        page_row_pos,
+        p_num,
+        img_file,
+        output_path,
+        page,
+):
     grid = make_grid_from_positions(page_col_pos, page_row_pos)
     n_rows = len(grid)
     n_cols = len(grid[0]) if n_rows > 0 else 0
     print(f"> page {p_num}: grid with {n_rows} rows, {n_cols} columns")
 
+    output_files_basename = img_file[:img_file.rindex('.')]
     page_grids_file = os.path.join(output_path, output_files_basename + '.grids.json')
     print(f"saving page grids JSON file to '{page_grids_file}'")
     save_page_grids({p_num: grid}, page_grids_file)
@@ -220,14 +186,115 @@ def table_extractor(
     return datatable_to_dataframe(table)
 
 
-if __name__ == '__main__':
-    tbl = table_extractor(
-        r"../data",
-        r"transkribus.pdf",
-        None,
-        1,
-        100,
-        100,
+def get_lines(
+        img_proc_obj,
+        **hough_param
+):
+    hough_param["hough_votes_thresh"] = round(hough_param["hough_votes_coef"] * img_proc_obj.img_w)
+    del hough_param["hough_votes_coef"]
+    lines_hough = img_proc_obj.detect_lines(**hough_param)
+    print(f"> found {len(lines_hough)} lines")
+    return lines_hough
+
+
+def get_xml_page(
+        input_file,
+        data_dir,
+        p_num,
+):
+    if not os.path.isdir(data_dir):
+        raise NotADirectoryError(f"Not a valid directory name: {data_dir}")
+
+    if not os.path.isfile(os.path.join(data_dir, input_file)):
+        raise FileNotFoundError(f"No file named {input_file}")
+
+    if not isinstance(p_num, int):
+        raise ValueError(f"{p_num} is not a valid page number")
+
+    os.chdir(data_dir)
+    os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml -f {p_num} -l {p_num}")
+    xml_tree, xml_root = read_xml(f"{input_file}.xml")
+    page = parse_pages(xml_root)[p_num]
+    return xml_tree, page
+
+
+def get_page_scaling(
+        img_proc_obj,
+        page,
+):
+    page_scaling_x = img_proc_obj.img_w / page['width']
+    page_scaling_y = img_proc_obj.img_h / page['height']
+    return page_scaling_x, page_scaling_y
+
+
+def table_extractor(
+        data_dir: str,
+        input_file: str,
+        output_path: str,
+        p_num: int,
+        min_col_width: int,
+        min_row_height: int,
+        **hough_param
+) -> pd.DataFrame:
+    """
+    Extracts table from OCR:d table
+    :param data_dir:
+    :param input_file:
+    :param output_path:
+    :param p_num:
+    :param min_col_width:
+    :param min_row_height:
+    :return:
+    """
+    if not output_path:
+        output_path = data_dir
+
+    xml_tree, page = get_xml_page(
+        input_file,
+        data_dir,
+        p_num,
     )
-    print(tbl.values)
-    print(tbl.iloc[1,1])
+    img_file_basename = page['image'][:page['image'].rindex('.')]
+    img_file = os.path.join(data_dir, page['image'])
+    img_proc_obj = imgproc.ImageProc(img_file)
+
+    page_scaling_x, page_scaling_y = get_page_scaling(img_proc_obj, page)
+
+    lines_hough = get_lines(img_proc_obj, **hough_param)
+    img_proc_obj.lines_hough = lines_hough
+
+    save_image_w_lines(
+        img_proc_obj,
+        img_file_basename,
+        output_path,
+    )
+    repair_image(
+        xml_tree,
+        img_proc_obj,
+        page,
+        img_file,
+        output_path,
+    )
+    page_col_pos, page_row_pos = get_grid_pos(
+        img_proc_obj,
+        page,
+        page_scaling_x,
+        page_scaling_y,
+        min_col_width,
+        min_row_height,
+        output_path,
+        img_file_basename,
+    )
+    data_frame = extract_data_frame(
+        page_col_pos,
+        page_row_pos,
+        p_num,
+        img_file,
+        output_path,
+        page,
+    )
+    return data_frame
+
+
+if __name__ == '__main__':
+    fire.Fire(table_extractor())
