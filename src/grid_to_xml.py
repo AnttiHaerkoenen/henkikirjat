@@ -8,17 +8,10 @@ from collections import OrderedDict
 from datetime import datetime
 
 import xmltodict
-from pdftabextract import imgproc
+from pdftabextract import imgproc, extract
 import numpy as np
 
-from ocr_tools import (
-    get_xml_page,
-    get_page_scaling,
-    get_lines,
-    get_grid_pos,
-    save_image_w_lines,
-    repair_image
-)
+import ocr_tools
 
 PAGE_TEMPLATE = r'../src/PAGE_template.xml'
 
@@ -35,7 +28,7 @@ def page_grid_to_xml(
     if not output_path:
         output_path = data_dir
 
-    xml_tree, page = get_xml_page(
+    xml_tree, page = ocr_tools.get_xml_page(
         input_file,
         data_dir,
         p_num,
@@ -44,24 +37,24 @@ def page_grid_to_xml(
     img_file = os.path.join(data_dir, page['image'])
     img_proc_obj = imgproc.ImageProc(img_file)
 
-    page_scaling_x, page_scaling_y = get_page_scaling(img_proc_obj, page)
+    page_scaling_x, page_scaling_y = ocr_tools.get_page_scaling(img_proc_obj, page)
 
-    lines_hough = get_lines(img_proc_obj, **hough_param)
+    lines_hough = ocr_tools.get_lines(img_proc_obj, **hough_param)
     img_proc_obj.lines_hough = lines_hough
 
-    save_image_w_lines(
+    ocr_tools.save_image_w_lines(
         img_proc_obj,
         img_file_basename,
         output_path,
     )
-    repair_image(
+    ocr_tools.repair_image(
         xml_tree,
         img_proc_obj,
         page,
         img_file,
         output_path,
     )
-    page_col_pos, page_row_pos = get_grid_pos(
+    page_col_pos, page_row_pos = ocr_tools.get_grid_pos(
         img_proc_obj,
         page,
         page_scaling_x,
@@ -71,24 +64,34 @@ def page_grid_to_xml(
         output_path,
         img_file_basename,
     )
-    print(page_row_pos)
-    print(page_col_pos)
 
     with open(PAGE_TEMPLATE) as fin:
         doc = xmltodict.parse(fin.read())
 
-    text_regions = OrderedDict()
-
-    now = datetime.now()
-    now = now.isoformat().split('.')[0]
+    now = datetime.now().isoformat().split('.')[0]
     doc['PcGts']['Metadata'] = {
         'Creator': __author__,
         'Created': now,
         'LastChange': now,
     }
 
-    doc['PcGts']['Page'] = text_regions
+    table_region = OrderedDict({
+        '@id': 'r1',
+        '@lineSeparators': 'true',
+    })
+    table_region['Coords'] = OrderedDict({
+        '@points': ocr_tools.get_region_coords(page_col_pos, page_row_pos)
+    })
+    x_pairs = extract.subsequent_pairs(page_col_pos)
+    y_pairs = extract.subsequent_pairs(page_row_pos)
+    for i, ys in enumerate(y_pairs):
+        for j, xs in enumerate(x_pairs): #TODO
+            text_region = OrderedDict()
+            text_region['Coords'] = {'@points': ocr_tools.get_region_coords(xs, ys)}
+
+    doc['PcGts']['Page'] = table_region
     print(doc)
+
     with open(f'{img_file_basename}.grids.xml', 'w') as fout:
         fout.writelines(xmltodict.unparse(doc, pretty=True))
     print("grid saved to XML")
