@@ -136,8 +136,7 @@ def get_grid_pos(
     cv2.imwrite(save_img_file, img_w_clusters)
 
     page_col_pos = np.array(calc_cluster_centers_1d(vertical_clusters)) / page_scaling_x
-    print(f'found {len(page_col_pos)} column borders:')
-    print(page_col_pos)
+    print(f'found {len(page_col_pos)} column borders')
 
     # same for horizontal clusters
     horizontal_clusters = img_proc_obj.find_clusters(
@@ -159,8 +158,7 @@ def get_grid_pos(
     cv2.imwrite(save_img_file, img_w_clusters)
 
     page_row_pos = np.array(calc_cluster_centers_1d(horizontal_clusters)) / page_scaling_y
-    print(f'found {len(page_row_pos)} row borders:')
-    print(page_row_pos)
+    print(f'found {len(page_row_pos)} row borders')
 
     return page_col_pos, page_row_pos
 
