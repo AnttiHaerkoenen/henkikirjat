@@ -14,7 +14,7 @@ Modified by AnttiHaerkoenen
 import fire
 import numpy as np
 
-from ocr_tools import table_extractor
+import ocr_tools
 
 
 def extract_table(
@@ -54,7 +54,7 @@ def extract_table(
         hough_theta_res=np.pi / hough_theta_coef,
         hough_votes_coef=hough_votes_coef,
     )
-    tbl = table_extractor(
+    tbl = ocr_tools.table_extractor(
         data_dir=data_dir,
         input_file=input_file,
         output_path=output_path,

@@ -78,16 +78,21 @@ def page_grid_to_xml(
     table_region = OrderedDict({
         '@id': 'r1',
         '@lineSeparators': 'true',
-    })
-    table_region['Coords'] = OrderedDict({
-        '@points': ocr_tools.get_region_coords(page_col_pos, page_row_pos)
+        'Coords': OrderedDict({'@points': ocr_tools.get_region_coords(page_col_pos, page_row_pos)}),
+        'TextRegion': [],
     })
     x_pairs = extract.subsequent_pairs(page_col_pos)
     y_pairs = extract.subsequent_pairs(page_row_pos)
     for i, ys in enumerate(y_pairs):
-        for j, xs in enumerate(x_pairs): #TODO
-            text_region = OrderedDict()
-            text_region['Coords'] = {'@points': ocr_tools.get_region_coords(xs, ys)}
+        for j, xs in enumerate(x_pairs):
+            region_id = len(x_pairs) * i + j + 2
+            coords = OrderedDict({'@points': ocr_tools.get_region_coords(xs, ys)})
+            text_region = OrderedDict({
+                '@id': f'r{region_id}',
+                '@type': 'paragraph',
+                'Coords': coords,
+            })
+            table_region['TextRegion'].append(text_region)
 
     doc['PcGts']['Page'] = table_region
     print(doc)
@@ -102,9 +107,9 @@ if __name__ == '__main__':
         data_dir='../data',
         input_file='data.pdf',
         output_path=None,
-        p_num=1,
-        min_col_width=20,
-        min_row_height=20,
+        p_num=2,
+        min_col_width=200,
+        min_row_height=200,
         hough_votes_coef=0.2,
         canny_kernel_size=3,
         canny_low_thresh=50,
