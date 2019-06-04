@@ -13,6 +13,7 @@ from math import radians, degrees
 from xml.etree import ElementTree
 from collections import OrderedDict
 from typing import Sequence
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -46,21 +47,21 @@ from pdftabextract.clustering import (
 def save_image_w_lines(
         img_proc_obj,
         img_file,
-        output_path
+        output_path,
 ):
     img_lines = img_proc_obj.draw_lines(orig_img_as_background=True)
-    img_lines_file = os.path.join(output_path, f'{img_file}-lines-orig.png')
+    img_lines_file = output_path / f'{img_file}-lines-orig.png'
 
     print(f"> saving image with detected lines to {img_lines_file}")
-    cv2.imwrite(img_lines_file, img_lines)
+    cv2.imwrite(img_lines_file.name, img_lines)
 
 
 def repair_image(
         xml_tree: ElementTree,
         img_proc_obj: imgproc.ImageProc,
         page: OrderedDict,
-        img_file: str,
-        output_path: str,
+        img_file: Path,
+        output_path: Path,
 ):
     """
     Find rotation or skew and deskew or rotate boxes
@@ -97,8 +98,8 @@ def repair_image(
 
     save_image_w_lines(img_proc_obj, img_file_basename + '-repaired', output_path)
 
-    output_files_basename = img_file[:img_file.rindex('.')]
-    repaired_xml_file = os.path.join(output_path, output_files_basename + '.repaired.xml')
+    output_files_basename = img_file.name.split('.')[0]
+    repaired_xml_file = output_path / (output_files_basename + '.repaired.xml')
 
     print(f"saving repaired XML file to '{repaired_xml_file}'...")
     xml_tree.write(repaired_xml_file)
@@ -129,16 +130,14 @@ def get_grid_pos(
     )
     print(f"> found {len(vertical_clusters)} clusters")
 
-    # draw the clusters
     img_w_clusters = img_proc_obj.draw_line_clusters(imgproc.DIRECTION_VERTICAL, vertical_clusters)
-    save_img_file = os.path.join(output_path, f'{img_file_basename}-vertical-clusters.png')
+    save_img_file = output_path / f'{img_file_basename}-vertical-clusters.png'
     print(f"> saving image with detected vertical clusters to '{save_img_file}'")
-    cv2.imwrite(save_img_file, img_w_clusters)
+    cv2.imwrite(save_img_file.name, img_w_clusters)
 
     page_col_pos = np.array(calc_cluster_centers_1d(vertical_clusters)) / page_scaling_x
     print(f'found {len(page_col_pos)} column borders')
 
-    # same for horizontal clusters
     horizontal_clusters = img_proc_obj.find_clusters(
         imgproc.DIRECTION_HORIZONTAL,
         find_clusters_1d_break_dist,
@@ -153,9 +152,9 @@ def get_grid_pos(
         imgproc.DIRECTION_HORIZONTAL,
         horizontal_clusters,
     )
-    save_img_file = os.path.join(output_path, f'{img_file_basename}-horizontal-clusters.png')
+    save_img_file = output_path / f'{img_file_basename}-horizontal-clusters.png'
     print(f"> saving image with detected horizontal clusters to '{save_img_file}'")
-    cv2.imwrite(save_img_file, img_w_clusters)
+    cv2.imwrite(save_img_file.name, img_w_clusters)
 
     page_row_pos = np.array(calc_cluster_centers_1d(horizontal_clusters)) / page_scaling_y
     print(f'found {len(page_row_pos)} row borders')
@@ -176,8 +175,8 @@ def extract_data_frame(
     n_cols = len(grid[0]) if n_rows > 0 else 0
     print(f"> page {p_num}: grid with {n_rows} rows, {n_cols} columns")
 
-    output_files_basename = img_file[:img_file.rindex('.')]
-    page_grids_file = os.path.join(output_path, output_files_basename + '.grids.json')
+    output_files_basename = img_file.name.split('.')[0]
+    page_grids_file = output_path + (output_files_basename + '.grids.json')
     print(f"saving page grids JSON file to '{page_grids_file}'")
     save_page_grids({p_num: grid}, page_grids_file)
 
@@ -196,25 +195,25 @@ def get_lines(
     return lines_hough
 
 
-def get_xml_page(
+def get_xml_pages(
         input_file,
         data_dir,
-        p_num,
+        pages: Sequence,
 ):
-    if not os.path.isdir(data_dir):
+    if not data_dir.exists():
         raise NotADirectoryError(f"Not a valid directory name: {data_dir}")
 
-    if not os.path.isfile(os.path.join(data_dir, input_file)):
+    if not (data_dir / input_file).is_file():
         raise FileNotFoundError(f"No file named {input_file}")
 
-    if not isinstance(p_num, int):
-        raise ValueError(f"{p_num} is not a valid page number")
+    if not isinstance(pages, Sequence):
+        raise ValueError(f"{pages} is not a valid page range")
 
     os.chdir(data_dir)
-    os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml -f {p_num} -l {p_num}")
+    os.system(f"pdftohtml -c -hidden -xml {input_file} {input_file}.xml -f {min(pages)} -l {max(pages)}")
     xml_tree, xml_root = read_xml(f"{input_file}.xml")
-    page = parse_pages(xml_root)[p_num]
-    return xml_tree, page
+    pages = parse_pages(xml_root)
+    return xml_tree, pages
 
 
 def get_page_scaling(
@@ -232,73 +231,73 @@ def get_region_coords(x: Sequence, y: Sequence) -> str:
     return f"{x_min},{y_min} {x_min},{y_max} {x_max},{y_max} {x_max},{y_min}"
 
 
-def table_extractor(
-        data_dir: str,
-        input_file: str,
-        output_path: str,
-        p_num: int,
-        min_col_width: int,
-        min_row_height: int,
-        **hough_param
-) -> pd.DataFrame:
-    """
-    Extracts table from OCR:d table
-    :param data_dir:
-    :param input_file:
-    :param output_path:
-    :param p_num:
-    :param min_col_width:
-    :param min_row_height:
-    :return:
-    """
-    if not output_path:
-        output_path = data_dir
-
-    xml_tree, page = get_xml_page(
-        input_file,
-        data_dir,
-        p_num,
-    )
-    img_file_basename = page['image'][:page['image'].rindex('.')]
-    img_file = os.path.join(data_dir, page['image'])
-    img_proc_obj = imgproc.ImageProc(img_file)
-
-    page_scaling_x, page_scaling_y = get_page_scaling(img_proc_obj, page)
-
-    lines_hough = get_lines(img_proc_obj, **hough_param)
-    img_proc_obj.lines_hough = lines_hough
-
-    save_image_w_lines(
-        img_proc_obj,
-        img_file_basename,
-        output_path,
-    )
-    repair_image(
-        xml_tree,
-        img_proc_obj,
-        page,
-        img_file,
-        output_path,
-    )
-    page_col_pos, page_row_pos = get_grid_pos(
-        img_proc_obj,
-        page,
-        page_scaling_x,
-        page_scaling_y,
-        min_col_width,
-        min_row_height,
-        output_path,
-        img_file_basename,
-    )
-    data_frame = extract_data_frame(
-        page_col_pos,
-        page_row_pos,
-        p_num,
-        img_file,
-        output_path,
-        page,
-    )
-    return data_frame
+# def table_extractor(
+#         data_dir: str,
+#         input_file: str,
+#         output_path: str,
+#         p_num: int,
+#         min_col_width: int,
+#         min_row_height: int,
+#         **hough_param
+# ) -> pd.DataFrame:
+#     """
+#     Extracts table from OCR:d table
+#     :param data_dir:
+#     :param input_file:
+#     :param output_path:
+#     :param p_num:
+#     :param min_col_width:
+#     :param min_row_height:
+#     :return:
+#     """
+#     if not output_path:
+#         output_path = data_dir
+#
+#     xml_tree, page = get_xml_pages(
+#         input_file,
+#         data_dir,
+#         p_num,
+#     )
+#     img_file_basename = page['image'][:page['image'].rindex('.')]
+#     img_file = os.path.join(data_dir, page['image'])
+#     img_proc_obj = imgproc.ImageProc(img_file)
+#
+#     page_scaling_x, page_scaling_y = get_page_scaling(img_proc_obj, page)
+#
+#     lines_hough = get_lines(img_proc_obj, **hough_param)
+#     img_proc_obj.lines_hough = lines_hough
+#
+#     save_image_w_lines(
+#         img_proc_obj,
+#         img_file_basename,
+#         output_path,
+#     )
+#     repair_image(
+#         xml_tree,
+#         img_proc_obj,
+#         page,
+#         img_file,
+#         output_path,
+#     )
+#     page_col_pos, page_row_pos = get_grid_pos(
+#         img_proc_obj,
+#         page,
+#         page_scaling_x,
+#         page_scaling_y,
+#         min_col_width,
+#         min_row_height,
+#         output_path,
+#         img_file_basename,
+#     )
+#     data_frame = extract_data_frame(
+#         page_col_pos,
+#         page_row_pos,
+#         p_num,
+#         img_file,
+#         output_path,
+#         page,
+#     )
+#     return data_frame
 
 
 if __name__ == '__main__':

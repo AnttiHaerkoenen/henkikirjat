@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Sequence
 
 __author__ = 'AnttiHaerkoenen'
 
 import os
+from pathlib import Path
 from collections import OrderedDict
 from datetime import datetime
 
@@ -13,29 +15,65 @@ import numpy as np
 
 import ocr_tools
 
+
 PAGE_TEMPLATE = r'../src/PAGE_template.xml'
 
 
-def page_grid_to_xml(
+def pages_to_xml(
+        *,
         data_dir: str,
+        grid_dir: str = None,
         input_file: str,
         output_path: str = None,
-        p_num: int = 1,
+        pages: Sequence = (1,),
         min_col_width: int = 20,
         min_row_height: int = 20,
         **hough_param
 ):
-    if not output_path:
+    data_dir = Path(data_dir)
+    input_file = Path(input_file)
+    if grid_dir:
+        grid_dir = Path(grid_dir)
+    else:
+        grid_dir = data_dir / 'grids'
+    if not grid_dir.is_dir():
+        os.mkdir(grid_dir)
+    if output_path:
+        output_path = Path(output_path)
+    else:
         output_path = data_dir
 
-    xml_tree, page = ocr_tools.get_xml_page(
+    xml_tree, xml_pages = ocr_tools.get_xml_pages(
         input_file,
         data_dir,
-        p_num,
+        pages,
     )
+    for p_num in pages:
+        page_grid_to_xml(
+            xml_tree=xml_tree,
+            page=xml_pages[p_num],
+            data_dir=data_dir,
+            grid_dir=grid_dir,
+            output_path=output_path,
+            min_col_width=min_col_width,
+            min_row_height=min_row_height,
+            **hough_param
+        )
+
+
+def page_grid_to_xml(
+        xml_tree,
+        page,
+        data_dir: Path,
+        grid_dir: Path,
+        output_path: Path,
+        min_col_width: int,
+        min_row_height: int,
+        **hough_param
+):
     img_file_basename = page['image'][:page['image'].rindex('.')]
-    img_file = os.path.join(data_dir, page['image'])
-    img_proc_obj = imgproc.ImageProc(img_file)
+    img_file = data_dir / page['image']
+    img_proc_obj = imgproc.ImageProc(str(img_file))
 
     page_scaling_x, page_scaling_y = ocr_tools.get_page_scaling(img_proc_obj, page)
 
@@ -64,11 +102,13 @@ def page_grid_to_xml(
         output_path,
         img_file_basename,
     )
+    page_col_pos = page_col_pos.astype(int)
+    page_row_pos = page_row_pos.astype(int)
 
     with open(PAGE_TEMPLATE) as fin:
         doc = xmltodict.parse(fin.read())
 
-    now = datetime.now().isoformat().split('.')[0]
+    now = datetime.utcnow().isoformat()
     doc['PcGts']['Metadata'] = {
         'Creator': __author__,
         'Created': now,
@@ -78,7 +118,9 @@ def page_grid_to_xml(
     table_region = OrderedDict({
         '@id': 'r1',
         '@lineSeparators': 'true',
-        'Coords': OrderedDict({'@points': ocr_tools.get_region_coords(page_col_pos, page_row_pos)}),
+        'Coords': OrderedDict(
+            {'@points': ocr_tools.get_region_coords(page_col_pos, page_row_pos)}
+        ),
         'TextRegion': [],
     })
     x_pairs = extract.subsequent_pairs(page_col_pos)
@@ -94,20 +136,21 @@ def page_grid_to_xml(
             })
             table_region['TextRegion'].append(text_region)
 
-    doc['PcGts']['Page'] = table_region
+    doc['PcGts']['Page']['TableRegion'] = table_region
     print(doc)
 
-    with open(f'{img_file_basename}.grids.xml', 'w') as fout:
-        fout.writelines(xmltodict.unparse(doc, pretty=True))
+    grid_path = grid_dir / f'{img_file_basename}.xml'
+    grid_path.write_text(xmltodict.unparse(doc, pretty=True))
     print("grid saved to XML")
 
 
 if __name__ == '__main__':
-    page_grid_to_xml(
+    pages_to_xml(
         data_dir='../data',
+        grid_dir='../data/grids',
         input_file='data.pdf',
         output_path=None,
-        p_num=1,
+        pages=(1, 2),
         min_col_width=200,
         min_row_height=200,
         hough_votes_coef=0.25,

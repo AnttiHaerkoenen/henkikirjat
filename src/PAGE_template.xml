@@ -5,5 +5,12 @@
       <Created></Created>
       <LastChange></LastChange>
   </Metadata>
-  <Page></Page>
+  <Page>
+    <ReadingOrder>
+      <OrderedGroup>
+
+      </OrderedGroup>
+    </ReadingOrder>
+    <TableRegion></TableRegion>
+  </Page>
 </PcGts>
