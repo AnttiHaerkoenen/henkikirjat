@@ -108,13 +108,16 @@ def page_grid_to_xml(
     with open(PAGE_TEMPLATE) as fin:
         doc = xmltodict.parse(fin.read())
 
-    now = datetime.utcnow().isoformat()
+    now = datetime.utcnow().isoformat() + '+00:00'
     doc['PcGts']['Metadata'] = {
         'Creator': __author__,
         'Created': now,
         'LastChange': now,
     }
-
+    reading_order = OrderedDict({
+        '@caption': "Regions reading order",
+        'RegionRefIndexed': [],
+    })
     table_region = OrderedDict({
         '@id': 'r1',
         '@lineSeparators': 'true',
@@ -123,6 +126,7 @@ def page_grid_to_xml(
         ),
         'TextRegion': [],
     })
+
     x_pairs = extract.subsequent_pairs(page_col_pos)
     y_pairs = extract.subsequent_pairs(page_row_pos)
     for i, ys in enumerate(y_pairs):
@@ -135,8 +139,13 @@ def page_grid_to_xml(
                 'Coords': coords,
             })
             table_region['TextRegion'].append(text_region)
+            reading_order['RegionRefIndexed'].append({
+                '@index': f'{region_id}',
+                '@regionRef': f'r{region_id}',
+            })
 
     doc['PcGts']['Page']['TableRegion'] = table_region
+    doc['PcGts']['Page']['ReadingOrder']['OrderedGroup'] = reading_order
     print(doc)
 
     grid_path = grid_dir / f'{img_file_basename}.xml'
