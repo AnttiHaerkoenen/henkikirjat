@@ -6,3 +6,4 @@ fire
 xmltodict
 requests
 beautifulsoup4
+tesserocr
