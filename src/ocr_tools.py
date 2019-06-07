@@ -225,12 +225,6 @@ def get_page_scaling(
     return page_scaling_x, page_scaling_y
 
 
-def get_region_coords(x: Sequence, y: Sequence) -> str:
-    x_min, x_max = min(x), max(x)
-    y_min, y_max = min(y), max(y)
-    return f"{x_min},{y_min} {x_min},{y_max} {x_max},{y_max} {x_max},{y_min}"
-
-
 # def table_extractor(
 #         data_dir: str,
 #         input_file: str,

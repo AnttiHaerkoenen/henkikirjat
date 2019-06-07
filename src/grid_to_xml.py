@@ -14,6 +14,7 @@ from pdftabextract import imgproc, extract
 import numpy as np
 
 import ocr_tools
+from rectangle import Rectangle, get_rectangle_coords
 
 
 PAGE_TEMPLATE = r'../src/PAGE_template.xml'
@@ -116,13 +117,16 @@ def page_grid_to_xml(
     }
     reading_order = OrderedDict({
         '@caption': "Regions reading order",
-        'RegionRefIndexed': [],
+        'RegionRefIndexed': [{
+                '@index': 1,
+                '@regionRef': 'r1',
+            }],
     })
     table_region = OrderedDict({
         '@id': 'r1',
         '@lineSeparators': 'true',
         'Coords': OrderedDict(
-            {'@points': ocr_tools.get_region_coords(page_col_pos, page_row_pos)}
+            {'@points': get_rectangle_coords(page_col_pos, page_row_pos)}
         ),
         'TextRegion': [],
     })
@@ -131,25 +135,28 @@ def page_grid_to_xml(
     y_pairs = extract.subsequent_pairs(page_row_pos)
     for i, ys in enumerate(y_pairs):
         for j, xs in enumerate(x_pairs):
-            region_id = len(x_pairs) * i + j + 2
-            coords = OrderedDict({'@points': ocr_tools.get_region_coords(xs, ys)})
-            text_region = OrderedDict({
-                '@id': f'r{region_id}',
-                '@type': 'paragraph',
-                'Coords': coords,
-            })
-            table_region['TextRegion'].append(text_region)
+            n = len(x_pairs) * i + j + 2
+            rect = Rectangle(
+                x_min=min(xs),
+                x_max=max(xs),
+                y_min=min(ys),
+                y_max=max(ys),
+                id=f'r{n}',
+            )
+            table_region['TextRegion'].append(rect.to_dict())
             reading_order['RegionRefIndexed'].append({
-                '@index': f'{region_id}',
-                '@regionRef': f'r{region_id}',
+                '@index': n,
+                '@regionRef': rect.id,
             })
 
     doc['PcGts']['Page']['TableRegion'] = table_region
     doc['PcGts']['Page']['ReadingOrder']['OrderedGroup'] = reading_order
-    print(doc)
 
     grid_path = grid_dir / f'{img_file_basename}.xml'
-    grid_path.write_text(xmltodict.unparse(doc, pretty=True))
+    output = xmltodict.unparse(doc, pretty=True)\
+        .replace('></Coords>', '/>')\
+        .replace('></RegionRefIndexed>', '/>')
+    grid_path.write_text(output)
     print("grid saved to XML")
 
 
