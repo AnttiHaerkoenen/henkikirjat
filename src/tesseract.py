@@ -20,13 +20,18 @@ def predict_page_content(
     img_path = Path(img_file)
     xml_path = Path(xml_file)
 
-    with xml_path.open('rw') as fin, PyTessBaseAPI() as api:
+    with xml_path.open() as fin, PyTessBaseAPI() as api:
         doc = xmltodict.parse(fin.read())
         api.SetImageFile(img_path.name)
         rects = [Rectangle.from_dict(r) for r in doc['PcGts']['Page']['TableRegion']['TextRegion']]
         for r in rects:
-            api.SetRectangle()
-            api.GetUTF8Text()
+            api.SetRectangle(r.x_min, r.y_min, r.w, r.h)
+            r.predicted = api.GetUTF8Text()
+        doc['PcGts']['Page']['TableRegion']['TextRegion'] = [r.to_dict() for r in rects]
+        output = xmltodict.unparse(doc, pretty=True) \
+            .replace('></Coords>', '/>') \
+            .replace('></RegionRefIndexed>', '/>')
+        xml_path.write_text(output)
 
 
 if __name__ == '__main__':
