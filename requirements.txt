@@ -7,3 +7,4 @@ xmltodict
 requests
 beautifulsoup4
 tesserocr
+pillow

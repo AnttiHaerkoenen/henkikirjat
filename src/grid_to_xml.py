@@ -15,6 +15,7 @@ import numpy as np
 
 import ocr_tools
 from rectangle import Rectangle, get_rectangle_coords
+import tesseract
 
 
 PAGE_TEMPLATE = r'../src/PAGE_template.xml'
@@ -29,6 +30,10 @@ def pages_to_xml(
         pages: Sequence = (1,),
         min_col_width: int = 20,
         min_row_height: int = 20,
+        x_offset: int,
+        y_offset: int,
+        vertical_cluster_method=np.median,
+        horizontal_cluster_method=np.median,
         **hough_param
 ):
     data_dir = Path(data_dir)
@@ -58,6 +63,10 @@ def pages_to_xml(
             output_path=output_path,
             min_col_width=min_col_width,
             min_row_height=min_row_height,
+            x_offset=x_offset,
+            y_offset=y_offset,
+            vertical_cluster_method=vertical_cluster_method,
+            horizontal_cluster_method=horizontal_cluster_method,
             **hough_param
         )
 
@@ -70,9 +79,13 @@ def page_grid_to_xml(
         output_path: Path,
         min_col_width: int,
         min_row_height: int,
+        x_offset: int,
+        y_offset: int,
+        vertical_cluster_method,
+        horizontal_cluster_method,
         **hough_param
 ):
-    img_file_basename = page['image'][:page['image'].rindex('.')]
+    img_file_basename = '.'.join(page['image'].split('.')[:-1]).replace('_1', '')
     img_file = data_dir / page['image']
     img_proc_obj = imgproc.ImageProc(str(img_file))
 
@@ -94,17 +107,19 @@ def page_grid_to_xml(
         output_path,
     )
     page_col_pos, page_row_pos = ocr_tools.get_grid_pos(
-        img_proc_obj,
-        page,
-        page_scaling_x,
-        page_scaling_y,
-        min_col_width,
-        min_row_height,
-        output_path,
-        img_file_basename,
+        img_proc_obj=img_proc_obj,
+        page=page,
+        page_scaling_x=page_scaling_x,
+        page_scaling_y=page_scaling_y,
+        min_col_width=min_col_width,
+        min_row_height=min_row_height,
+        output_path=output_path,
+        img_file_basename=img_file_basename,
+        vertical_cluster_method=vertical_cluster_method,
+        horizontal_cluster_method=horizontal_cluster_method,
     )
-    page_col_pos = page_col_pos.astype(int)
-    page_row_pos = page_row_pos.astype(int)
+    page_col_pos = page_col_pos.astype(int) + x_offset
+    page_row_pos = page_row_pos.astype(int) + y_offset
 
     with open(PAGE_TEMPLATE) as fin:
         doc = xmltodict.parse(fin.read())
@@ -169,10 +184,19 @@ if __name__ == '__main__':
         pages=(1, 2),
         min_col_width=200,
         min_row_height=200,
+        vertical_cluster_method=np.max,
+        horizontal_cluster_method=np.max,
+        x_offset=0,
+        y_offset=10,
         hough_votes_coef=0.25,
         canny_kernel_size=3,
         canny_low_thresh=50,
         canny_high_thresh=150,
         hough_rho_res=1,
         hough_theta_res=np.pi/500,
+    )
+    tesseract.predict_page_content(
+        r'Henkikir_3355R.jpg',
+        r'./grids/data.pdf-2.xml',
+        r'../data',
     )

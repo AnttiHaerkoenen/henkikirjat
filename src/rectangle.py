@@ -21,6 +21,10 @@ class Rectangle:
         return self.x_max - self.x_min
 
     @property
+    def pil_box(self):
+        return self.x_min, self.y_min, self.x_max, self.y_max
+
+    @property
     def coords(self) -> str:
         return f"{self.x_min},{self.y_min} {self.x_min},{self.y_max} " \
             f"{self.x_max},{self.y_max} {self.x_max},{self.y_min}"
@@ -28,16 +32,32 @@ class Rectangle:
     @staticmethod
     def from_coords(coords: str):
         mins, _, maxes, _ = coords.split(' ')
-        return Rectangle(mins[0], maxes[0], mins[1], mins[1])
+        mins = mins.split(',')
+        maxes = maxes.split(',')
+        return Rectangle(
+            int(mins[0]),
+            int(maxes[0]),
+            int(mins[1]),
+            int(maxes[1]),
+        )
 
     @staticmethod
     def from_dict(data_dict: dict):
-        coords = data_dict.get('Coords')
+        coords = data_dict['Coords']['@points']
         mins, _, maxes, _ = coords.split(' ')
+        mins = mins.split(',')
+        maxes = maxes.split(',')
         content = data_dict.get('TextEquiv', None)
         if content:
             content = content['Unicode']
-        return Rectangle(mins[0], maxes[0], mins[1], mins[1], data_dict.get('@id', None), content)
+        return Rectangle(
+            int(mins[0]),
+            int(maxes[0]),
+            int(mins[1]),
+            int(maxes[1]),
+            data_dict.get('@id', None),
+            content,
+        )
 
     def to_dict(self) -> OrderedDict:
         dict_ = OrderedDict({

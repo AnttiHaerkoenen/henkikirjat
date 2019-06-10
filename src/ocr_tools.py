@@ -106,12 +106,15 @@ def repair_image(
 
 
 def get_grid_pos(
+        *,
         img_proc_obj,
         page,
         page_scaling_x,
         page_scaling_y,
         min_col_width,
         min_row_height,
+        vertical_cluster_method,
+        horizontal_cluster_method,
         output_path,
         img_file_basename,
 ):
@@ -135,7 +138,9 @@ def get_grid_pos(
     print(f"> saving image with detected vertical clusters to '{save_img_file}'")
     cv2.imwrite(save_img_file.name, img_w_clusters)
 
-    page_col_pos = np.array(calc_cluster_centers_1d(vertical_clusters)) / page_scaling_x
+    page_col_pos = np.array(
+        calc_cluster_centers_1d(vertical_clusters, method=vertical_cluster_method)
+    ) / page_scaling_x
     print(f'found {len(page_col_pos)} column borders')
 
     horizontal_clusters = img_proc_obj.find_clusters(
@@ -156,7 +161,9 @@ def get_grid_pos(
     print(f"> saving image with detected horizontal clusters to '{save_img_file}'")
     cv2.imwrite(save_img_file.name, img_w_clusters)
 
-    page_row_pos = np.array(calc_cluster_centers_1d(horizontal_clusters)) / page_scaling_y
+    page_row_pos = np.array(
+        calc_cluster_centers_1d(horizontal_clusters, method=horizontal_cluster_method)
+    ) / page_scaling_y
     print(f'found {len(page_row_pos)} row borders')
 
     return page_col_pos, page_row_pos
