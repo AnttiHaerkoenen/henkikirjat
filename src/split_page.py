@@ -13,8 +13,8 @@ def split_page(
         img_file: str,
         data_dir: str,
         position: float = 0.5,
+        output_files=None,
 ):
-
     if not 0 <= position <= 1:
         raise ValueError("position should be between 0 and 1")
 
@@ -24,12 +24,14 @@ def split_page(
         position * img_proc_obj.img_w,
         direction=DIRECTION_VERTICAL,
     )
-    output_files_basename = img_file[:img_file.rindex('.')]
-    output_filename_1 = os.path.join(data_dir, f'{output_files_basename}L.jpg')
-    output_filename_2 = os.path.join(data_dir, f'{output_files_basename}R.jpg')
+    if output_files:
+        output_filename_1, output_filename_2 = output_files
+    else:
+        output_files_basename = img_file[:img_file.rindex('.')]
+        output_filename_1 = os.path.join(data_dir, f'{output_files_basename}L.jpg')
+        output_filename_2 = os.path.join(data_dir, f'{output_files_basename}R.jpg')
     cv2.imwrite(output_filename_1, image_1)
     cv2.imwrite(output_filename_2, image_2)
-    print('split images saved')
 
 
 if __name__ == '__main__':

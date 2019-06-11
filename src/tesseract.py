@@ -24,7 +24,7 @@ def predict_page_content(
         doc = xmltodict.parse(fin.read(), encoding='utf-8')
         api.SetImageFile(img_path.name)
         rects = [Rectangle.from_dict(r) for r in doc['PcGts']['Page']['TableRegion']['TextRegion']]
-        for r in rects[400:450]:
+        for r in rects[200:250]:
             img_tools.view_rectangle(r, img_path.name)
         for r in rects:
             api.SetRectangle(r.x_min, r.y_min, r.w, r.h)
