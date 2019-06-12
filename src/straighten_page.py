@@ -22,11 +22,15 @@ def straighten_page(
         position,
         tmp_files,
     )
-    image: Image = Image.open(img_file)
-    x_min, y_min, x_max, y_max = image.getbbox()
+    orig_img: Image = Image.open(img_file)
+    x_min, y_min, x_max, y_max = orig_img.getbbox()
     split_x = int((x_max - x_min) * position)
-    for img in tmp_files:
-        img = imgproc.ImageProc(img)
+    boxes = [
+        (x_min, y_min, split_x, y_max),
+        (split_x, y_min, x_max, y_max),
+    ]
+    for img_, box in zip(tmp_files, boxes):
+        img = imgproc.ImageProc(img_)
         img.detect_lines(**kwargs)
         rot_or_skew_type, rot_radians = img.find_rotation_or_skew(
             only_direction=DIRECTION_HORIZONTAL,
@@ -34,6 +38,9 @@ def straighten_page(
             rot_same_dir_thresh=math.radians(10),
         )
         rot_radians = rot_radians if rot_or_skew_type == ROTATION else 0
+        region = orig_img.crop(box)
+        region = region.rotate(math.degrees(rot_radians))
+        orig_img.paste(region, box)
 
 
 if __name__ == '__main__':
