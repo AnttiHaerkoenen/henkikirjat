@@ -15,7 +15,12 @@ def straighten_page(
         position: float = 0.5,
         **kwargs
 ):
-    tmp_files = r'./tmp/left', r'./tmp/right'
+    tmp_dir = r'tmp'
+    tmp_files = r'./tmp/left.jpg', r'./tmp/right.jpg'
+    os.chdir(data_dir)
+    if not os.path.isdir(tmp_dir):
+        os.mkdir(tmp_dir)
+
     split_page.split_page(
         img_file,
         data_dir,
