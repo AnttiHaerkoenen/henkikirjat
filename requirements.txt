@@ -1,4 +1,3 @@
-opencv
 pandas
 numpy
 pdftabextract
@@ -7,4 +6,5 @@ xmltodict
 requests
 beautifulsoup4
 tesserocr
-pillow
+Pillow
+opencv
