@@ -43,6 +43,8 @@ from pdftabextract.clustering import (
     calc_cluster_centers_1d,
 )
 
+from parameters import DetectLinesParam
+
 
 def save_image_w_lines(
         img_proc_obj,
@@ -193,11 +195,9 @@ def extract_data_frame(
 
 def get_lines(
         img_proc_obj,
-        **hough_param
+        hough_param: DetectLinesParam
 ):
-    hough_param["hough_votes_thresh"] = round(hough_param["hough_votes_coef"] * img_proc_obj.img_w)
-    del hough_param["hough_votes_coef"]
-    lines_hough = img_proc_obj.detect_lines(**hough_param)
+    lines_hough = img_proc_obj.detect_lines(**hough_param.param)
     print(f"> found {len(lines_hough)} lines")
     return lines_hough
 
@@ -241,16 +241,6 @@ def get_page_scaling(
 #         min_row_height: int,
 #         **hough_param
 # ) -> pd.DataFrame:
-#     """
-#     Extracts table from OCR:d table
-#     :param data_dir:
-#     :param input_file:
-#     :param output_path:
-#     :param p_num:
-#     :param min_col_width:
-#     :param min_row_height:
-#     :return:
-#     """
 #     if not output_path:
 #         output_path = data_dir
 #

@@ -1,17 +1,19 @@
 import os
 import math
 
-import fire
+import numpy as np
 from PIL import Image
 from pdftabextract import imgproc
 from pdftabextract.common import ROTATION, DIRECTION_HORIZONTAL, DIRECTION_VERTICAL
 
 import split_page
+from parameters import DetectLinesParam
 
 
 def straighten_page(
-        img_file: str,
         data_dir: str,
+        img_file: str,
+        output_file: str = None,
         position: float = 0.5,
         **kwargs
 ):
@@ -20,6 +22,9 @@ def straighten_page(
     os.chdir(data_dir)
     if not os.path.isdir(tmp_dir):
         os.mkdir(tmp_dir)
+    if not output_file:
+        output_file, extension = img_file.split('.')
+        output_file = f'{output_file}_straight.{extension}'
 
     split_page.split_page(
         img_file,
@@ -36,7 +41,8 @@ def straighten_page(
     ]
     for img_, box in zip(tmp_files, boxes):
         img = imgproc.ImageProc(img_)
-        img.detect_lines(**kwargs)
+        parameters = DetectLinesParam(img, **kwargs)
+        img.detect_lines(**parameters.params)
         rot_or_skew_type, rot_radians = img.find_rotation_or_skew(
             only_direction=DIRECTION_HORIZONTAL,
             rot_thresh=math.radians(1),
@@ -46,7 +52,12 @@ def straighten_page(
         region = orig_img.crop(box)
         region = region.rotate(math.degrees(rot_radians))
         orig_img.paste(region, box)
+    orig_img.save(output_file)
 
 
 if __name__ == '__main__':
-    fire.Fire(straighten_page)
+    straighten_page(
+        img_file='3355.jpg',
+        data_dir='../data',
+        position=0.5,
+    )

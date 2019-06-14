@@ -16,6 +16,7 @@ import numpy as np
 import ocr_tools
 from rectangle import Rectangle, get_rectangle_coords
 import tesseract
+from parameters import DetectLinesParam
 
 
 PAGE_TEMPLATE = r'../src/PAGE_template.xml'
@@ -88,6 +89,7 @@ def page_grid_to_xml(
     img_file_basename = '.'.join(page['image'].split('.')[:-1]).replace('_1', '')
     img_file = data_dir / page['image']
     img_proc_obj = imgproc.ImageProc(str(img_file))
+    hough_param = DetectLinesParam(**hough_param)
 
     page_scaling_x, page_scaling_y = ocr_tools.get_page_scaling(img_proc_obj, page)
 
