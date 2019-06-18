@@ -44,7 +44,7 @@ def get_pic_ids(url: str, start_page: int, last_page: int) -> dict:
     :return: Dict of ints (page: kuid for scanned image files)
     """
     response = requests.get(
-        f'{url}',
+        f'{DIGINARC}{url}',
         headers=headers,
         timeout=5,
     )
@@ -79,7 +79,7 @@ if __name__ == '__main__':
         '--first',
         dest='first',
         type=int,
-        help='First page to download. Must be a link',
+        help='First page to download. Must be the text in a link.',
     )
     parser.add_argument(
         '--last',
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         '--dir',
         dest='directory',
         type=str,
-        help='Where to put downloaded files. Created if it doesn\'t exist.',
+        help='Where to put downloaded files. Created if doesn\'t exist.',
     )
     args = parser.parse_args()
     pages = get_pic_ids(args.url, args.first, args.last)
