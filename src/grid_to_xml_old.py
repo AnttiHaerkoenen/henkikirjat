@@ -23,12 +23,62 @@ from parameters import DetectLinesParam
 PAGE_TEMPLATE = r'../src/PAGE_template.xml'
 
 
-def page_grid_to_xml(
+def pages_to_xml(
         *,
-        image: str,
         data_dir: str,
-        grid_dir: str,
-        output_dir: str,
+        grid_dir: str = None,
+        input_file: str,
+        output_path: str = None,
+        pages: Sequence = (1,),
+        min_col_width: int = 20,
+        min_row_height: int = 20,
+        x_offset: int,
+        y_offset: int,
+        vertical_cluster_method=np.median,
+        horizontal_cluster_method=np.median,
+        **hough_param
+):
+    data_dir = Path(data_dir)
+    input_file = Path(input_file)
+    if grid_dir:
+        grid_dir = Path(grid_dir)
+    else:
+        grid_dir = data_dir / 'grids'
+    if not grid_dir.is_dir():
+        os.mkdir(grid_dir)
+    if output_path:
+        output_path = Path(output_path)
+    else:
+        output_path = data_dir
+
+    xml_tree, xml_pages = ocr_tools.get_xml_pages(
+        input_file,
+        data_dir,
+        pages,
+    )
+    for p_num in pages:
+        page_grid_to_xml(
+            xml_tree=xml_tree,
+            page=xml_pages[p_num],
+            data_dir=data_dir,
+            grid_dir=grid_dir,
+            output_path=output_path,
+            min_col_width=min_col_width,
+            min_row_height=min_row_height,
+            x_offset=x_offset,
+            y_offset=y_offset,
+            vertical_cluster_method=vertical_cluster_method,
+            horizontal_cluster_method=horizontal_cluster_method,
+            **hough_param
+        )
+
+
+def page_grid_to_xml(
+        xml_tree,
+        page,
+        data_dir: Path,
+        grid_dir: Path,
+        output_path: Path,
         min_col_width: int,
         min_row_height: int,
         x_offset: int,
@@ -37,11 +87,8 @@ def page_grid_to_xml(
         horizontal_cluster_method,
         **hough_param
 ):
-    data_path = Path(data_dir)
-    output_path = Path(output_dir)
-
-    img_file_basename = image.split('.')[0]
-    img_file = data_path / image
+    img_file_basename = '.'.join(page['image'].split('.')[:-1]).replace('_1', '')
+    img_file = data_dir / page['image']
     img_proc_obj = imgproc.ImageProc(str(img_file))
     hough_param = DetectLinesParam(img_proc_obj, **hough_param)
 
@@ -55,8 +102,16 @@ def page_grid_to_xml(
         img_file_basename,
         output_path,
     )
+    ocr_tools.repair_image(
+        xml_tree,
+        img_proc_obj,
+        page,
+        img_file,
+        output_path,
+    )
     page_col_pos, page_row_pos = ocr_tools.get_grid_pos(
         img_proc_obj=img_proc_obj,
+        page=page,
         page_scaling_x=page_scaling_x,
         page_scaling_y=page_scaling_y,
         min_col_width=min_col_width,
