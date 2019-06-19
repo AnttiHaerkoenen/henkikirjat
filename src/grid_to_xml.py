@@ -89,11 +89,11 @@ def page_grid_to_xml(
     img_file_basename = '.'.join(page['image'].split('.')[:-1]).replace('_1', '')
     img_file = data_dir / page['image']
     img_proc_obj = imgproc.ImageProc(str(img_file))
-    hough_param = DetectLinesParam(**hough_param)
+    hough_param = DetectLinesParam(img_proc_obj, **hough_param)
 
     page_scaling_x, page_scaling_y = ocr_tools.get_page_scaling(img_proc_obj, page)
 
-    lines_hough = ocr_tools.get_lines(img_proc_obj, **hough_param)
+    lines_hough = img_proc_obj.detect_lines(**hough_param.params)
     img_proc_obj.lines_hough = lines_hough
 
     ocr_tools.save_image_w_lines(

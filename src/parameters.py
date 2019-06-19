@@ -7,12 +7,12 @@ from pdftabextract.imgproc import ImageProc
 @dataclass
 class DetectLinesParam:
     img_proc_obj: ImageProc
-    hough_votes_coef = 0.25
-    canny_kernel_size = 3
-    canny_low_thresh = 50
-    canny_high_thresh = 150
-    hough_rho_res = 1
-    hough_theta_res = np.pi / 500
+    hough_votes_coef: float = 0.25
+    canny_kernel_size: float = 3
+    canny_low_thresh: float = 50
+    canny_high_thresh: float = 150
+    hough_rho_res: float = 1
+    hough_theta_res: float = np.pi / 500
 
     @property
     def params(self):
