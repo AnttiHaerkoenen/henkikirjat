@@ -45,6 +45,8 @@ from pdftabextract.clustering import (
 
 from parameters import DetectLinesParam
 
+IMAGE_TYPE = 'jpg'
+
 
 def save_image_w_lines(
         img_proc_obj,
@@ -52,10 +54,10 @@ def save_image_w_lines(
         output_path,
 ):
     img_lines = img_proc_obj.draw_lines(orig_img_as_background=True)
-    img_lines_file = output_path / f'{img_file}-lines-orig.png'
+    img_lines_file = str(output_path / f'{img_file}-lines-orig.{IMAGE_TYPE}')
 
     print(f"> saving image with detected lines to {img_lines_file}")
-    cv2.imwrite(img_lines_file.name, img_lines)
+    cv2.imwrite(img_lines_file, img_lines)
 
 
 def repair_image(
@@ -110,9 +112,8 @@ def repair_image(
 def get_grid_pos(
         *,
         img_proc_obj,
-        page,
-        page_scaling_x,
-        page_scaling_y,
+        page_scaling_x=1,
+        page_scaling_y=1,
         min_col_width,
         min_row_height,
         vertical_cluster_method,
@@ -120,25 +121,17 @@ def get_grid_pos(
         output_path,
         img_file_basename,
 ):
-    # cluster the detected *vertical* lines using find_clusters_1d_break_dist as simple clustering function
-    # (break on distance min_col_width / 2)
-    # additionally, remove all cluster sections that are considered empty
-    # a cluster is considered empty when the number of text boxes in it is below 10% of the median number of text boxes
-    # per cluster section
     vertical_clusters = img_proc_obj.find_clusters(
         imgproc.DIRECTION_VERTICAL,
         find_clusters_1d_break_dist,
-        remove_empty_cluster_sections_use_texts=page['texts'],
-        remove_empty_cluster_sections_n_texts_ratio=0.1,
-        remove_empty_cluster_sections_scaling=page_scaling_x,
         dist_thresh=min_col_width / 4,
     )
     print(f"> found {len(vertical_clusters)} clusters")
 
     img_w_clusters = img_proc_obj.draw_line_clusters(imgproc.DIRECTION_VERTICAL, vertical_clusters)
-    save_img_file = output_path / f'{img_file_basename}-vertical-clusters.png'
+    save_img_file = str(output_path / f'{img_file_basename}-vertical-clusters.{IMAGE_TYPE}')
     print(f"> saving image with detected vertical clusters to '{save_img_file}'")
-    cv2.imwrite(save_img_file.name, img_w_clusters)
+    cv2.imwrite(save_img_file, img_w_clusters)
 
     page_col_pos = np.array(
         calc_cluster_centers_1d(vertical_clusters, method=vertical_cluster_method)
@@ -148,9 +141,6 @@ def get_grid_pos(
     horizontal_clusters = img_proc_obj.find_clusters(
         imgproc.DIRECTION_HORIZONTAL,
         find_clusters_1d_break_dist,
-        remove_empty_cluster_sections_use_texts=page['texts'],
-        remove_empty_cluster_sections_n_texts_ratio=0.1,
-        remove_empty_cluster_sections_scaling=page_scaling_y,
         dist_thresh=min_row_height / 4,
     )
     print(f"> found {len(horizontal_clusters)} clusters")
@@ -159,9 +149,9 @@ def get_grid_pos(
         imgproc.DIRECTION_HORIZONTAL,
         horizontal_clusters,
     )
-    save_img_file = output_path / f'{img_file_basename}-horizontal-clusters.png'
+    save_img_file = str(output_path / f'{img_file_basename}-horizontal-clusters.{IMAGE_TYPE}')
     print(f"> saving image with detected horizontal clusters to '{save_img_file}'")
-    cv2.imwrite(save_img_file.name, img_w_clusters)
+    cv2.imwrite(save_img_file, img_w_clusters)
 
     page_row_pos = np.array(
         calc_cluster_centers_1d(horizontal_clusters, method=horizontal_cluster_method)
@@ -221,15 +211,6 @@ def get_xml_pages(
     xml_tree, xml_root = read_xml(f"{input_file}.xml")
     pages = parse_pages(xml_root)
     return xml_tree, pages
-
-
-def get_page_scaling(
-        img_proc_obj,
-        page,
-):
-    page_scaling_x = img_proc_obj.img_w / page['width']
-    page_scaling_y = img_proc_obj.img_h / page['height']
-    return page_scaling_x, page_scaling_y
 
 
 # def table_extractor(
