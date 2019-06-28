@@ -127,7 +127,7 @@ if __name__ == '__main__':
     page_grid_to_xml(
         data_dir='../data',
         grid_dir='../data/grids',
-        image='3355_straight.jpg',
+        image='test.jpg',
         output_dir=None,
         min_col_width=200,
         min_row_height=200,

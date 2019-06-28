@@ -10,11 +10,30 @@ import split_page
 from parameters import DetectLinesParam
 
 
+def crop_page(
+        data_dir: str,
+        img_file: str,
+        output_file: str = None,
+        top: int = 0,
+        bottom: int = 0,
+        left: int = 0,
+        right: int = 0,
+):
+    os.chdir(data_dir)
+    if not output_file:
+        output_file, extension = img_file.split('.')
+        output_file = f'{output_file}_cropped.{extension}'
+    img: Image = Image.open(img_file)
+    x_min, y_min, x_max, y_max = img.getbbox()
+    box = x_min + left, y_min + top, x_max - right, y_max - bottom
+    img.crop(box).save(output_file)
+
+
 def straighten_page(
         data_dir: str,
         img_file: str,
         output_file: str = None,
-        position: float = 0.5,
+        split_position: float = 0.5,
         **kwargs
 ):
     tmp_dir = r'tmp'
@@ -29,12 +48,12 @@ def straighten_page(
     split_page.split_page(
         img_file,
         data_dir,
-        position,
+        split_position,
         tmp_files,
     )
     orig_img: Image = Image.open(img_file)
     x_min, y_min, x_max, y_max = orig_img.getbbox()
-    split_x = int((x_max - x_min) * position)
+    split_x = int((x_max - x_min) * split_position)
     boxes = [
         (x_min, y_min, split_x, y_max),
         (split_x, y_min, x_max, y_max),
@@ -56,8 +75,18 @@ def straighten_page(
 
 
 if __name__ == '__main__':
-    straighten_page(
+    crop_page(
         img_file='3355.jpg',
+        output_file='test.jpg',
         data_dir='../data',
-        position=0.5,
+        top=500,
+        bottom=240,
+        left=100,
+        right=100,
+    )
+    straighten_page(
+        img_file='test.jpg',
+        data_dir='../data',
+        output_file='test.jpg',
+        split_position=0.5,
     )

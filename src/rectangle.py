@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from dataclasses import dataclass
+from typing import Union
 
 
 @dataclass
@@ -8,9 +9,9 @@ class Rectangle:
     x_max: int
     y_min: int
     y_max: int
-    id: str or None = None
-    content: str or None = None
-    predicted: str or None = None
+    id: Union[str, None] = None
+    content: Union[str, None] = None
+    predicted: Union[str, None] = None
 
     @property
     def h(self):
@@ -23,6 +24,10 @@ class Rectangle:
     @property
     def pil_box(self):
         return self.x_min, self.y_min, self.x_max, self.y_max
+
+    @property
+    def np_slice(self):
+        return slice(self.y_min, self.y_max), slice(self.x_min, self.x_max)
 
     @property
     def coords(self) -> str:
