@@ -87,8 +87,8 @@ def page_grid_to_xml(
         horizontal_cluster_method,
         **hough_param
 ):
-    img_file_basename = '.'.join(page['image'].split('.')[:-1]).replace('_1', '')
-    img_file = data_dir / page['image']
+    img_file_basename = '.'.join(page['img'].split('.')[:-1]).replace('_1', '')
+    img_file = data_dir / page['img']
     img_proc_obj = imgproc.ImageProc(str(img_file))
     hough_param = DetectLinesParam(img_proc_obj, **hough_param)
 

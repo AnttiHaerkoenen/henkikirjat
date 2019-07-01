@@ -41,7 +41,7 @@ def get_pic_ids(url: str, start_page: int, last_page: int) -> dict:
     :param url: ukid-level page
     :param start_page: first page to get
     :param last_page: inclusive end of page range
-    :return: Dict of ints (page: kuid for scanned image files)
+    :return: Dict of ints (page: kuid for scanned img files)
     """
     response = requests.get(
         f'{DIGINARC}{url}',

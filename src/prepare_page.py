@@ -81,8 +81,8 @@ if __name__ == '__main__':
         data_dir='../data',
         top=500,
         bottom=240,
-        left=100,
-        right=100,
+        left=450,
+        right=250,
     )
     straighten_page(
         img_file='test.jpg',

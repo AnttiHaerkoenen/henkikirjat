@@ -56,7 +56,7 @@ def save_image_w_lines(
     img_lines = img_proc_obj.draw_lines(orig_img_as_background=True)
     img_lines_file = str(output_path / f'{img_file}-lines-orig.{IMAGE_TYPE}')
 
-    print(f"> saving image with detected lines to {img_lines_file}")
+    print(f"> saving img with detected lines to {img_lines_file}")
     cv2.imwrite(img_lines_file, img_lines)
 
 
@@ -82,7 +82,7 @@ def repair_image(
     :param output_path:
     :return:
     """
-    img_file_basename = page['image'][:page['image'].rindex('.')]
+    img_file_basename = page['img'][:page['img'].rindex('.')]
     for _ in range(10):
         rot_or_skew_type, rot_or_skew_radians = img_proc_obj.find_rotation_or_skew(
             radians(0.5),
@@ -130,7 +130,7 @@ def get_grid_pos(
 
     img_w_clusters = img_proc_obj.draw_line_clusters(imgproc.DIRECTION_VERTICAL, vertical_clusters)
     save_img_file = str(output_path / f'{img_file_basename}-vertical-clusters.{IMAGE_TYPE}')
-    print(f"> saving image with detected vertical clusters to '{save_img_file}'")
+    print(f"> saving img with detected vertical clusters to '{save_img_file}'")
     cv2.imwrite(save_img_file, img_w_clusters)
 
     page_col_pos = np.array(
@@ -150,7 +150,7 @@ def get_grid_pos(
         horizontal_clusters,
     )
     save_img_file = str(output_path / f'{img_file_basename}-horizontal-clusters.{IMAGE_TYPE}')
-    print(f"> saving image with detected horizontal clusters to '{save_img_file}'")
+    print(f"> saving img with detected horizontal clusters to '{save_img_file}'")
     cv2.imwrite(save_img_file, img_w_clusters)
 
     page_row_pos = np.array(
@@ -230,8 +230,8 @@ def get_xml_pages(
 #         data_dir,
 #         p_num,
 #     )
-#     img_file_basename = page['image'][:page['image'].rindex('.')]
-#     img_file = os.path.join(data_dir, page['image'])
+#     img_file_basename = page['img'][:page['img'].rindex('.')]
+#     img_file = os.path.join(data_dir, page['img'])
 #     img_proc_obj = imgproc.ImageProc(img_file)
 #
 #     page_scaling_x, page_scaling_y = get_page_scaling(img_proc_obj, page)
