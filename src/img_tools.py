@@ -17,10 +17,26 @@ def view_rectangle(rect: Rectangle, img_file: str):
 
 if __name__ == '__main__':
     os.chdir('../data')
-    image = cv2.imread('test.jpg')
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)[1]
-    cv2.imwrite('thresh.jpg', thresh)
+    image = cv2.imread('test.jpg', cv2.IMREAD_GRAYSCALE)
+    image_rgb = cv2.imread('test.jpg', cv2.IMREAD_COLOR)
+
+    edges = cv2.Canny(image, 400, 1000)
+    cv2.imwrite('canny.jpg', edges)
+
+    template = cv2.imread('5.jpg', cv2.IMREAD_GRAYSCALE)
+    h, w = template.shape
+
+    res = cv2.matchTemplate(edges, template, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.29
+    loc = np.where(res >= threshold)
+
+    for pt in zip(*loc[::-1]):
+        cv2.rectangle(image_rgb, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+
+    cv2.imwrite('res.jpg', image_rgb)
+
+    # thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)[1]
+    # cv2.imwrite('thresh.jpg', thresh)
 
     # cnts = cv2.findContours(
     #     thresh.copy(),
@@ -29,10 +45,7 @@ if __name__ == '__main__':
     # )
     # cnts = imutils.grab_contours(cnts)
     # output = image.copy()
-    # # loop over the contours
     # for i, c in enumerate(cnts):
-    #     # draw each contour on the output image with a 3px thick purple
-    #     # outline, then display the output contours one at a time
     #     cv2.drawContours(output, [c], -1, (240, 0, 159), 3)
     #     cv2.imwrite(f"contour{i}.jpg", output)
     #     print(f"Contour file {i} written")
