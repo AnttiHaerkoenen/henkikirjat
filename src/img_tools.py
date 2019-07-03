@@ -15,6 +15,26 @@ def view_rectangle(rect: Rectangle, img_file: str):
         box.show()
 
 
+def get_digit_locations(
+        image_file,
+        data_dir,
+        template_dir,
+):
+    os.chdir(data_dir)
+    image = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)
+    image_rgb = cv2.imread(image_file, cv2.IMREAD_COLOR)
+
+    edges = cv2.Canny(image, 400, 1000)
+    cv2.imwrite('canny.jpg', edges)
+
+    template = cv2.imread('5.jpg', cv2.IMREAD_GRAYSCALE)
+    h, w = template.shape
+
+    res = cv2.matchTemplate(edges, template, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.29
+    loc = np.where(res >= threshold)
+
+
 if __name__ == '__main__':
     os.chdir('../data')
     image = cv2.imread('test.jpg', cv2.IMREAD_GRAYSCALE)
