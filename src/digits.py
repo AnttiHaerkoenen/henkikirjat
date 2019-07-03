@@ -5,6 +5,7 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 import cv2
 
 
@@ -54,6 +55,10 @@ class Digits:
             combined_results[k] = np.mean(np.vstack(digit_results), axis=0)
         self.locations = pd.DataFrame(combined_results)
 
+    @property
+    def normalized(self):
+        return self.locations
+
     @staticmethod
     def _check_template_sizes(templates):
         sizes = []
@@ -75,4 +80,5 @@ if __name__ == '__main__':
         canny_parameters=canny_parameters,
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
     )
-    print(digits)
+    digits.locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)
+    plt.show()
