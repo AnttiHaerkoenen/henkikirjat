@@ -30,9 +30,7 @@ def predict_page_content(
             api.SetRectangle(r.x_min, r.y_min, r.w, r.h)
             r.predicted = api.GetUTF8Text().strip()
         doc['PcGts']['Page']['TableRegion']['TextRegion'] = [r.to_dict() for r in rects]
-        output = xmltodict.unparse(doc, pretty=True) \
-            .replace('></Coords>', '/>') \
-            .replace('></RegionRefIndexed>', '/>')
+        output = xmltodict.unparse(doc, pretty=True, short_empty_elements=True)
         xml_path.write_text(output, encoding='utf-8')
 
 

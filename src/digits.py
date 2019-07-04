@@ -10,12 +10,12 @@ import cv2
 
 
 class TemplateMatchingMethod(Enum):
-    CCOEF = 4
-    CCOEF_NORM = 5
-    CCORR = 2
-    CCORR_NORM = 3
-    SQDIFF = 0
-    SQDIFF_NORM = 1
+    CCOEF = cv2.TM_CCOEFF
+    CCOEF_NORM = cv2.TM_CCOEFF_NORMED
+    CCORR = cv2.TM_CCORR
+    CCORR_NORM = cv2.TM_CCORR_NORMED
+    SQDIFF = cv2.TM_SQDIFF
+    SQDIFF_NORM = cv2.TM_SQDIFF_NORMED
 
 
 class Digits:
@@ -25,7 +25,11 @@ class Digits:
             templates: Mapping[str, Sequence[Path]],
             template_matching_method: TemplateMatchingMethod,
             canny_parameters: Mapping,
+            threshold_values: Mapping[str, float],
     ):
+        if set(templates) != set(threshold_values):
+            raise ValueError("Templates and threshold values must match!")
+
         self.image_path = image_path
         self.templates = templates
         self.image: np.ndarray = cv2.imread(str(self.image_path), cv2.IMREAD_COLOR)
@@ -37,6 +41,7 @@ class Digits:
 
         self.edges = None
         self.canny_parameters = canny_parameters
+        self.threshold_values = pd.Series(threshold_values)
         self._analyse()
 
     def __str__(self):
@@ -57,7 +62,10 @@ class Digits:
 
     @property
     def normalized(self):
-        return self.locations
+        mask = self.locations.gt(self.threshold_values)
+        normalized = self.locations.where(mask, other=0)
+        normalized = normalized / normalized.max(axis=0)
+        return normalized
 
     @staticmethod
     def _check_template_sizes(templates):
@@ -74,11 +82,19 @@ if __name__ == '__main__':
     os.chdir('../data')
     templates = {i: [Path('./digit_templates') / f"{i}.jpg"] for i in "1 2 3 4 5".split()}
     canny_parameters = {'threshold1': 400, 'threshold2': 1000}
+    thresholds = {
+        '1': 0.5,
+        '2': 0.5,
+        '3': 0.5,
+        '4': 0.5,
+        '5': 0.5,
+    }
     digits = Digits(
         image_path=Path('test.jpg'),
         templates=templates,
         canny_parameters=canny_parameters,
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
+        threshold_values=thresholds,
     )
     digits.locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)
     plt.show()
