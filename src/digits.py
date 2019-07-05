@@ -67,6 +67,10 @@ class Digits:
         normalized = normalized / normalized.max(axis=0)
         return normalized
 
+    @property
+    det coordinates(self):
+        #todo return {x, y: digit for x, y in coords if digit_prob > 0}
+
     @staticmethod
     def _check_template_sizes(templates):
         sizes = []
