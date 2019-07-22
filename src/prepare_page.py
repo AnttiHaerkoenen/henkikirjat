@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 from pdftabextract import imgproc
 from pdftabextract.common import ROTATION, DIRECTION_HORIZONTAL, DIRECTION_VERTICAL
+import cv2
 
 import split_page
 from parameters import DetectLinesParam
@@ -27,6 +28,23 @@ def crop_page(
     x_min, y_min, x_max, y_max = img.getbbox()
     box = x_min + left, y_min + top, x_max - right, y_max - bottom
     img.crop(box).save(output_file)
+
+
+def cut_names(
+        data_dir: str,
+        img_file: str,
+        output_file: str = None,
+        left: int = 0,
+        right: int = 0,
+):
+    os.chdir(data_dir)
+    if not output_file:
+        output_file, extension = img_file.split('.')
+        output_file = f'{output_file}_anon.{extension}'
+    img = cv2.imread(img_file)
+    a, _, c = np.hsplit(img, [left, right])
+    img = np.hstack([a, c])
+    cv2.imwrite(output_file, img)
 
 
 def straighten_page(
@@ -89,4 +107,11 @@ if __name__ == '__main__':
         data_dir='../data',
         output_file='test.jpg',
         split_position=0.5,
+    )
+    cut_names(
+        img_file='test.jpg',
+        data_dir='../data',
+        output_file='test.jpg',
+        left=100,
+        right=1550,
     )

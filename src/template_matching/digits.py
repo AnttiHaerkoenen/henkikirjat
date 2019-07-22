@@ -1,21 +1,12 @@
 import os
 from typing import Mapping, Sequence
 from pathlib import Path
-from enum import Enum
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-import cv2
+import matplotlib.pyplot as plt
 
-
-class TemplateMatchingMethod(Enum):
-    CCOEF = cv2.TM_CCOEFF
-    CCOEF_NORM = cv2.TM_CCOEFF_NORMED
-    CCORR = cv2.TM_CCORR
-    CCORR_NORM = cv2.TM_CCORR_NORMED
-    SQDIFF = cv2.TM_SQDIFF
-    SQDIFF_NORM = cv2.TM_SQDIFF_NORMED
+from src.template_matching import *
 
 
 class Digits:
@@ -93,10 +84,10 @@ if __name__ == '__main__':
     canny_parameters = {'threshold1': 400, 'threshold2': 1000}
     thresholds = {
         '1': 0.5,
-        '2': 0.5,
-        '3': 0.5,
-        '4': 0.5,
-        '5': 0.5,
+        '2': 0.3,
+        '3': 0.3,
+        '4': 0.3,
+        '5': 0.3,
     }
     digits = Digits(
         image_path=Path('test.jpg'),
@@ -105,7 +96,10 @@ if __name__ == '__main__':
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
         threshold_values=thresholds,
     )
-    print(digits.coordinates)
     print(digits.coordinates['1 2 3 4 5'.split()].sum(axis=1) == digits.coordinates['1 2 3 4 5'.split()].max(axis=1))
     # digits.locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)
-    # plt.show()
+    for i in '1 2 3 4 5'.split():
+        df = digits.coordinates[[i, 'x', 'y']]
+        df = df[df[i] > 0].copy()
+        df.plot(x='x', y='y', kind='scatter', xlim=(0, digits.w), ylim=(0, digits.h))
+    plt.show()
