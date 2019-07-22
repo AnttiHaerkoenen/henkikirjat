@@ -34,8 +34,9 @@ class Digits:
         self.templates = templates
         self.image: np.ndarray = cv2.imread(str(self.image_path), cv2.IMREAD_COLOR)
         self.gray_image: np.ndarray = cv2.imread(str(self.image_path), cv2.IMREAD_GRAYSCALE)
-        self.shape = len(templates), self.image.size
+        self.h, self.w = self.gray_image.shape
         self.locations = None
+        self.normalized = None
 
         self.template_matching_method = template_matching_method.value
 
@@ -43,6 +44,7 @@ class Digits:
         self.canny_parameters = canny_parameters
         self.threshold_values = pd.Series(threshold_values)
         self._analyse()
+        self._normalise()
 
     def __str__(self):
         return str(self.locations)
@@ -58,18 +60,21 @@ class Digits:
                 matched = cv2.matchTemplate(self.edges, template, self.template_matching_method)
                 digit_results.append(matched.ravel())
             combined_results[k] = np.mean(np.vstack(digit_results), axis=0)
-        self.locations = pd.DataFrame(combined_results)
+        self.locations = pd.DataFrame.from_dict(combined_results, orient='columns')
 
-    @property
-    def normalized(self):
-        mask = self.locations.gt(self.threshold_values)
+    def _normalise(self):
+        mask = self.locations.gt(self.threshold_values.T)
         normalized = self.locations.where(mask, other=0)
         normalized = normalized / normalized.max(axis=0)
-        return normalized
+        self.normalized = normalized.fillna(0)
 
     @property
-    det coordinates(self):
-        #todo return {x, y: digit for x, y in coords if digit_prob > 0}
+    def coordinates(self):
+        norm = self.normalized
+        coords = norm[norm.any(axis=1)].copy()
+        y, x = divmod(coords.index, self.w)
+        coords['x'], coords['y'] = x, y
+        return coords
 
     @staticmethod
     def _check_template_sizes(templates):
@@ -100,5 +105,7 @@ if __name__ == '__main__':
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
         threshold_values=thresholds,
     )
-    digits.locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)
-    plt.show()
+    print(digits.coordinates)
+    print(digits.coordinates['1 2 3 4 5'.split()].sum(axis=1) == digits.coordinates['1 2 3 4 5'.split()].max(axis=1))
+    # digits.locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)
+    # plt.show()
