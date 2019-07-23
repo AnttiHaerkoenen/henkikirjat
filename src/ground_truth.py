@@ -15,7 +15,7 @@ def get_ground_truth(
     data = xmltodict.parse(grid.read_text())
     regions = data['PcGts']['Page']['TableRegion']['TextRegion']
     for i, region in enumerate(regions):
-        rect = Rectangle.from_dict(region)
+        rect = Rectangle.from_xml_dict(region)
         box = img[rect.np_slice]
         win_name = rect.id
         cv2.imshow(win_name, box)
@@ -23,7 +23,7 @@ def get_ground_truth(
         if 48 <= key <= 57:
             digit = str(key - 48)
             rect.content = digit
-            regions[i] = rect.to_dict()
+            regions[i] = rect.to_xml_dict()
         cv2.destroyWindow(win_name)
     grid.write_text(xmltodict.unparse(
         data,

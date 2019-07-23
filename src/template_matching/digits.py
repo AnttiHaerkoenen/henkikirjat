@@ -5,8 +5,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import cv2
 
-from src.template_matching import *
+from .enums import TemplateMatchingMethod
+
+__all__ = [
+    'Digits',
+]
 
 
 class Digits:
