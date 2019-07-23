@@ -11,6 +11,20 @@ import split_page
 from parameters import DetectLinesParam
 
 
+def _get_pos(lines, x=0):
+    rhos = []
+    thetas = []
+    for line in lines:
+        rho, theta, _, direction = line
+        if direction == DIRECTION_HORIZONTAL:
+            rhos.append(rho)
+            thetas.append(theta)
+    rho = np.array(rhos)
+    theta = np.array(thetas)
+    y = np.rint((rho - x * np.cos(theta)) / np.sin(theta))
+    return np.sort(y)
+
+
 def crop_page(
         data_dir: str,
         img_file: str,
@@ -76,10 +90,13 @@ def straighten_page(
         (x_min, y_min, split_x, y_max),
         (split_x, y_min, x_max, y_max),
     ]
+
+    lines = []
     for img_, box in zip(tmp_files, boxes):
         img = imgproc.ImageProc(img_)
         parameters = DetectLinesParam(img, **kwargs)
         img.detect_lines(**parameters.params)
+        lines.append(img.lines_hough)
         rot_or_skew_type, rot_radians = img.find_rotation_or_skew(
             only_direction=DIRECTION_HORIZONTAL,
             rot_thresh=math.radians(1),
@@ -88,19 +105,28 @@ def straighten_page(
         rot_radians = rot_radians if rot_or_skew_type == ROTATION else 0
         region = orig_img.crop(box)
         region = region.rotate(math.degrees(rot_radians))
+        if len(lines) > 1:
+            l, r = lines
+            l_pos = _get_pos(l)
+            l_diff = np.diff(l_pos)
+            r_pos = _get_pos(r)
+            r_diff = np.diff(r_pos)
+            print(l_diff)
+            print(r_diff)
+            # todo compare positions
         orig_img.paste(region, box)
     orig_img.save(output_file)
 
 
 if __name__ == '__main__':
     crop_page(
-        img_file='3355.jpg',
+        img_file='5105.jpg',
         output_file='test.jpg',
         data_dir='../data',
-        top=500,
-        bottom=240,
-        left=450,
-        right=250,
+        top=0,
+        bottom=0,
+        left=0,
+        right=0,
     )
     straighten_page(
         img_file='test.jpg',
@@ -112,6 +138,6 @@ if __name__ == '__main__':
         img_file='test.jpg',
         data_dir='../data',
         output_file='test.jpg',
-        left=100,
-        right=1550,
+        left=600,
+        right=2500,
     )

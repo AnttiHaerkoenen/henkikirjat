@@ -29,7 +29,7 @@ class Digits:
         self.locations = None
         self.normalized = None
 
-        self.template_matching_method = template_matching_method.value
+        self.template_matching_method = template_matching_method
 
         self.edges = None
         self.canny_parameters = canny_parameters
@@ -47,8 +47,15 @@ class Digits:
         for k, l in self.templates.items():
             digit_results = []
             for template_fp in l:
-                template = cv2.imread(str(template_fp), cv2.IMREAD_GRAYSCALE)
-                matched = cv2.matchTemplate(self.edges, template, self.template_matching_method)
+                template = cv2.imread(
+                    str(template_fp),
+                    cv2.IMREAD_GRAYSCALE,
+                )
+                matched = cv2.matchTemplate(
+                    self.edges,
+                    template,
+                    self.template_matching_method.value,
+                )
                 digit_results.append(matched.ravel())
             combined_results[k] = np.mean(np.vstack(digit_results), axis=0)
         self.locations = pd.DataFrame.from_dict(combined_results, orient='columns')
@@ -96,6 +103,7 @@ if __name__ == '__main__':
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
         threshold_values=thresholds,
     )
+    print(digits.coordinates)
     print(digits.coordinates['1 2 3 4 5'.split()].sum(axis=1) == digits.coordinates['1 2 3 4 5'.split()].max(axis=1))
     # digits.locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)
     for i in '1 2 3 4 5'.split():
