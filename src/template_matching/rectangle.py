@@ -11,7 +11,7 @@ class Rectangle:
     y_max: int
     id: Union[str, None] = None
     content: Union[str, None] = None
-    predicted: Union[dict, str, None] = None
+    predicted: Union[dict, None] = None
 
     @property
     def h(self):
@@ -47,7 +47,7 @@ class Rectangle:
         )
 
     @staticmethod
-    def from_dict(data_dict):
+    def from_json_dict(data_dict):
         return Rectangle(
             *data_dict['coords'],
             data_dict['id'],
@@ -73,10 +73,11 @@ class Rectangle:
             content,
         )
 
-    def to_dict(self):
+    def to_json_dict(self):
+        coords = [int(c) for c in self.coords]
         return {
             'id': self.id,
-            'coords': self.coords,
+            'coords': coords,
             'content': self.content,
             'predicted': self.predicted,
         }
