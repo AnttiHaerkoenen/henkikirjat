@@ -3,15 +3,37 @@ from dataclasses import dataclass
 from typing import Union
 
 
-@dataclass
+@dataclass(init=False)
 class Rectangle:
     x_min: int
-    x_max: int
     y_min: int
+    x_max: int
     y_max: int
     id: Union[str, None] = None
     content: Union[str, None] = None
     predicted: Union[dict, None] = None
+
+    def __init__(
+            self,
+            x_min,
+            y_min,
+            x_max,
+            y_max,
+            id=None,
+            content=None,
+            predicted=None,
+    ):
+        if x_max < x_min:
+            raise ValueError("Impossible shape! x_max must be greater than x_min")
+        if y_max < y_min:
+            raise ValueError("Impossible shape! y_max must be greater than y_min")
+        self.x_min = int(x_min)
+        self.y_min = int(y_min)
+        self.x_max = int(x_max)
+        self.y_max = int(y_max)
+        self.id = str(id)
+        self.content = content
+        self.predicted = predicted
 
     @property
     def h(self):
@@ -74,10 +96,9 @@ class Rectangle:
         )
 
     def to_json_dict(self):
-        coords = [int(c) for c in self.coords]
         return {
             'id': self.id,
-            'coords': coords,
+            'coords': self.coords,
             'content': self.content,
             'predicted': self.predicted,
         }

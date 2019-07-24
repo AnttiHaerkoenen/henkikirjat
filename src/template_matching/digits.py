@@ -22,6 +22,7 @@ class Digits:
             template_matching_method: TemplateMatchingMethod,
             canny_parameters: Mapping,
             threshold_values: Mapping[str, float],
+            grouping_distance: int = 5,
     ):
         if set(templates) != set(threshold_values):
             raise ValueError("Templates and threshold values must match!")
@@ -31,6 +32,7 @@ class Digits:
         self.image: np.ndarray = cv2.imread(str(self.image_path), cv2.IMREAD_COLOR)
         self.gray_image: np.ndarray = cv2.imread(str(self.image_path), cv2.IMREAD_GRAYSCALE)
         self.h, self.w = self.gray_image.shape
+        self.grouping_distance = grouping_distance
         self.locations = None
         self.normalized = None
 
@@ -72,7 +74,7 @@ class Digits:
         self.normalized = normalized.fillna(0)
 
     @property
-    def coordinates(self):
+    def coordinates(self) -> pd.DataFrame:
         norm = self.normalized
         coords = norm[norm.any(axis=1)].copy()
         y, x = divmod(coords.index, self.w)
