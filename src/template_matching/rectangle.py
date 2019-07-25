@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, List
 
 
 @dataclass(init=False)
@@ -11,7 +11,7 @@ class Rectangle:
     y_max: int
     id: Union[str, None] = None
     content: Union[str, None] = None
-    predicted: Union[dict, None] = None
+    predicted: Union[List[List], None] = None
 
     def __init__(
             self,

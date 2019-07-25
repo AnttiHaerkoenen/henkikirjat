@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-from typing import Sequence
+from typing import Iterable, List
 import json
 
 import numpy as np
@@ -14,17 +14,19 @@ from src.template_matching.enums import TemplateMatchingMethod
 
 def match_locations_to_rectangles(
         digits: Digits,
-        rectangles: Sequence[Rectangle]
-):
-    # todo
+        rectangles: Iterable[Rectangle],
+) -> Iterable[Rectangle]:
     for rect in rectangles:
-        inside = digits.digit_locations.within_rectangle(rect, grouped=True)
-        if not inside.isempty():
-            # todo df.groupby(group).max().copy()
-            # todo create group-dim prob space for permutations
-            #  and convert to dict[perm, prob]
-            print(rect)
-            print(inside_digits)
+        digit_list = []
+        inside = digits.digit_locations.within_rectangle(rect, combined=True)
+        if not inside.empty:
+            probabilities = inside.sort_values(by='x')
+            for _, row in probabilities.iterrows():
+                candidates = row.drop(['x', 'y']).sort_values(ascending=False)
+                candidates = list(candidates[candidates > 0].index)
+                digit_list.append(candidates)
+        rect.predicted = digit_list
+    return rectangles
 
 
 def predict_page_content(
@@ -60,6 +62,7 @@ if __name__ == '__main__':
         canny_parameters=canny_parameters,
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
         threshold_values=thresholds,
+        grouping_distance=5,
     )
     grid_path = Path('./grids/test.json')
     rectangles = [Rectangle.from_json_dict(e) for e in json.loads(grid_path.read_text())['1']]

@@ -50,7 +50,7 @@ class DigitLocations:
 
     @property
     def grouped(self):
-        if not self._grouped:
+        if self._grouped is None:
             dist = pd.DataFrame(
                 euclidean_distances(self.coordinates.values),
                 index=self.index,
@@ -66,15 +66,24 @@ class DigitLocations:
         return self._grouped
 
     @property
+    def combined(self):
+        values = self.grouped.drop(['x', 'y'], axis=1)
+        group_values = values.groupby(['group'], sort=False).max()
+        coordinates = self.grouped[['x', 'y', 'group']]
+        group_coordinates = coordinates.groupby(['group']).mean()
+        combined = group_values.join(group_coordinates)
+        return combined
+
+    @property
     def coordinates(self) -> pd.DataFrame:
         return self._data.loc[:, ['x', 'y']]
 
     def within_rectangle(
             self,
             rectangle: Rectangle,
-            grouped=True,
+            combined=True,
     ):
-        data = self.grouped if grouped else self._data
+        data = self.combined if combined else self.grouped
         x = data['x']
         y = data['y']
         inside = ((x >= rectangle.x_min) & (y >= rectangle.y_min)) & ((x <= rectangle.x_max) & (y <= rectangle.y_max))
