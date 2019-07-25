@@ -1,17 +1,84 @@
 import os
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, List
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
+import networkx as nx
+from sklearn.metrics import euclidean_distances
 
-from .enums import TemplateMatchingMethod
+from src.template_matching.enums import TemplateMatchingMethod
+from src.template_matching.rectangle import Rectangle
 
 __all__ = [
     'Digits',
+    'DigitLocations',
 ]
+
+
+class DigitLocations:
+    def __init__(
+            self,
+            data: pd.DataFrame,
+            *,
+            image_path: Path,
+            h: int,
+            w: int,
+            grouping_distance=5,
+    ):
+        self.image_path = image_path
+        self.h = h
+        self.w = w
+        self.grouping_distance = grouping_distance
+        coords = data[data.any(axis=1)].copy()
+        y, x = divmod(coords.index, self.w)
+        coords['x'] = x
+        coords['y'] = y
+        self._data = coords
+        self._grouped = None
+
+    def __getitem__(self, item):
+        return self._data[item]
+
+    def __getattr__(self, item):
+        return getattr(self._data, item)
+
+    def __str__(self):
+        return str(self._data)
+
+    @property
+    def grouped(self):
+        if not self._grouped:
+            dist = pd.DataFrame(
+                euclidean_distances(self.coordinates.values),
+                index=self.index,
+                columns=self.index,
+            )
+            w = dist <= self.grouping_distance
+            g = nx.from_pandas_adjacency(w)
+            groups = []
+            for group, c in enumerate(nx.connected_components(g)):
+                groups.extend([group] * len(c))
+            self._grouped = self._data
+            self._grouped['group'] = groups
+        return self._grouped
+
+    @property
+    def coordinates(self) -> pd.DataFrame:
+        return self._data.loc[:, ['x', 'y']]
+
+    def within_rectangle(
+            self,
+            rectangle: Rectangle,
+            grouped=True,
+    ):
+        data = self.grouped if grouped else self._data
+        x = data['x']
+        y = data['y']
+        inside = ((x >= rectangle.x_min) & (y >= rectangle.y_min)) & ((x <= rectangle.x_max) & (y <= rectangle.y_max))
+        return data[inside]
 
 
 class Digits:
@@ -22,7 +89,7 @@ class Digits:
             template_matching_method: TemplateMatchingMethod,
             canny_parameters: Mapping,
             threshold_values: Mapping[str, float],
-            grouping_distance: int = 5,
+            grouping_distance: int,
     ):
         if set(templates) != set(threshold_values):
             raise ValueError("Templates and threshold values must match!")
@@ -33,8 +100,8 @@ class Digits:
         self.gray_image: np.ndarray = cv2.imread(str(self.image_path), cv2.IMREAD_GRAYSCALE)
         self.h, self.w = self.gray_image.shape
         self.grouping_distance = grouping_distance
-        self.locations = None
-        self.normalized = None
+        self._locations = pd.DataFrame()
+        self.normalized = pd.DataFrame()
 
         self.template_matching_method = template_matching_method
 
@@ -43,9 +110,16 @@ class Digits:
         self.threshold_values = pd.Series(threshold_values)
         self._analyse()
         self._normalise()
+        self.digit_locations = DigitLocations(
+            self.normalized,
+            image_path=self.image_path,
+            w=self.w,
+            h=self.h,
+            grouping_distance=self.grouping_distance,
+        )
 
     def __str__(self):
-        return str(self.locations)
+        return str(self._locations)
 
     def _analyse(self):
         self._check_template_sizes(self.templates)
@@ -65,21 +139,13 @@ class Digits:
                 )
                 digit_results.append(matched.ravel())
             combined_results[k] = np.mean(np.vstack(digit_results), axis=0)
-        self.locations = pd.DataFrame.from_dict(combined_results, orient='columns')
+        self._locations = pd.DataFrame.from_dict(combined_results, orient='columns')
 
     def _normalise(self):
-        mask = self.locations.gt(self.threshold_values.T)
-        normalized = self.locations.where(mask, other=0)
+        mask = self._locations.gt(self.threshold_values.T)
+        normalized = self._locations.where(mask, other=0)
         normalized = normalized / normalized.max(axis=0)
         self.normalized = normalized.fillna(0)
-
-    @property
-    def coordinates(self) -> pd.DataFrame:
-        norm = self.normalized
-        coords = norm[norm.any(axis=1)].copy()
-        y, x = divmod(coords.index, self.w)
-        coords['x'], coords['y'] = x, y
-        return coords
 
     @staticmethod
     def _check_template_sizes(templates):
@@ -109,12 +175,8 @@ if __name__ == '__main__':
         canny_parameters=canny_parameters,
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
         threshold_values=thresholds,
+        grouping_distance=5,
     )
-    print(digits.coordinates)
-    print(digits.coordinates['1 2 3 4 5'.split()].sum(axis=1) == digits.coordinates['1 2 3 4 5'.split()].max(axis=1))
-    # digits.locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)
-    for i in '1 2 3 4 5'.split():
-        df = digits.coordinates[[i, 'x', 'y']]
-        df = df[df[i] > 0].copy()
-        df.plot(x='x', y='y', kind='scatter', xlim=(0, digits.w), ylim=(0, digits.h))
-    plt.show()
+    print(digits.digit_locations.grouped)
+    # print(digits.coordinates['1 2 3 4 5'.split()].sum(axis=1) == digits.coordinates['1 2 3 4 5'.split()].max(axis=1))
+    # digits._locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)

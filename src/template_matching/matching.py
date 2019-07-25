@@ -17,13 +17,9 @@ def match_locations_to_rectangles(
         rectangles: Sequence[Rectangle]
 ):
     # todo
-    x = digits.coordinates['x'].values
-    y = digits.coordinates['y'].values
     for rect in rectangles:
-        inside = ((x >= rect.x_min) & (y >= rect.y_min)) & ((x <= rect.x_max) & (y <= rect.y_max))
-        inside_digits = digits.coordinates[inside]
-        if np.any(inside):
-            # todo group by x-dim dist
+        inside = digits.digit_locations.within_rectangle(rect, grouped=True)
+        if not inside.isempty():
             # todo df.groupby(group).max().copy()
             # todo create group-dim prob space for permutations
             #  and convert to dict[perm, prob]
