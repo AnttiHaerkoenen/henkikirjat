@@ -1,7 +1,42 @@
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 from pdftabextract.imgproc import ImageProc
+
+
+@dataclass
+class GridParam:
+    min_col_width: float = 200
+    min_row_height: float = 200
+    vertical_cluster_method: Callable[[np.ndarray], np.ndarray] = np.median
+    horizontal_cluster_method: Callable[[np.ndarray], np.ndarray] = np.median
+    x_offset: float = 0
+    y_offset: float = 10
+
+    @property
+    def parameters(self):
+        return {
+            "min_col_width": self. min_col_width,
+            "min_row_height": self.min_row_height,
+            "vertical_cluster_method": self.vertical_cluster_method,
+            "horizontal_cluster_method": self.horizontal_cluster_method,
+            "x_offset": self.x_offset,
+            "y_offset": self.y_offset,
+        }
+
+
+@dataclass
+class CannyParam:
+    lower_threshold = 400
+    upper_threshold = 1000
+
+    @property
+    def parameters(self):
+        return {
+            'threshold1': self.lower_threshold,
+            'threshold2': self.upper_threshold,
+        }
 
 
 @dataclass
@@ -15,7 +50,7 @@ class DetectLinesParam:
     hough_theta_res: float = np.pi / 500
 
     @property
-    def params(self):
+    def parameters(self):
         return {
             'hough_rho_res': self.hough_rho_res,
             'hough_theta_res': self.hough_theta_res,

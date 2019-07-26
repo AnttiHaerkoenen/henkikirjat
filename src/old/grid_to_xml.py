@@ -94,7 +94,7 @@ def page_grid_to_xml(
 
     page_scaling_x, page_scaling_y = ocr_tools.get_page_scaling(img_proc_obj, page)
 
-    lines_hough = img_proc_obj.detect_lines(**hough_param.params)
+    lines_hough = img_proc_obj.detect_lines(**hough_param.parameters)
     img_proc_obj.lines_hough = lines_hough
 
     ocr_tools.save_image_w_lines(

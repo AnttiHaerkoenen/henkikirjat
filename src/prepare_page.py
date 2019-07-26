@@ -1,5 +1,6 @@
 import os
 import math
+from typing import Sequence
 
 import numpy as np
 from PIL import Image
@@ -7,8 +8,8 @@ from pdftabextract import imgproc
 from pdftabextract.common import ROTATION, DIRECTION_HORIZONTAL, DIRECTION_VERTICAL
 import cv2
 
-import split_page
-from parameters import DetectLinesParam
+from src.split_page import split_page
+from src.template_matching.parameters import DetectLinesParam
 
 
 def crop_page(
@@ -63,7 +64,7 @@ def straighten_page(
         output_file, extension = img_file.split('.')
         output_file = f'{output_file}_straight.{extension}'
 
-    split_page.split_page(
+    split_page(
         img_file,
         data_dir,
         split_position,
@@ -79,7 +80,7 @@ def straighten_page(
     for img_, box in zip(tmp_files, boxes):
         img = imgproc.ImageProc(img_)
         parameters = DetectLinesParam(img, **kwargs)
-        img.detect_lines(**parameters.params)
+        img.detect_lines(**parameters.parameters)
         rot_or_skew_type, rot_radians = img.find_rotation_or_skew(
             only_direction=DIRECTION_HORIZONTAL,
             rot_thresh=math.radians(1),
@@ -92,26 +93,32 @@ def straighten_page(
     orig_img.save(output_file)
 
 
+def prepare_pages(
+        img_files: Sequence[str],
+):
+    pass
+
+
 if __name__ == '__main__':
     crop_page(
-        img_file='3355.jpg',
-        output_file='test.jpg',
+        img_file='5104.jpg',
+        output_file='test1.jpg',
         data_dir='../data',
-        top=500,
-        bottom=240,
+        top=300,
+        bottom=100,
         left=450,
         right=250,
     )
     straighten_page(
-        img_file='test.jpg',
+        img_file='test1.jpg',
         data_dir='../data',
-        output_file='test.jpg',
+        output_file='test1.jpg',
         split_position=0.5,
     )
     cut_names(
-        img_file='test.jpg',
+        img_file='test1.jpg',
         data_dir='../data',
-        output_file='test.jpg',
+        output_file='test1.jpg',
         left=100,
-        right=1550,
+        right=2000,
     )

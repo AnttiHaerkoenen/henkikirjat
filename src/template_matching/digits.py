@@ -11,6 +11,7 @@ from sklearn.metrics import euclidean_distances
 
 from src.template_matching.enums import TemplateMatchingMethod
 from src.template_matching.rectangle import Rectangle
+from src.template_matching.parameters import CannyParam
 
 __all__ = [
     'Digits',
@@ -96,7 +97,7 @@ class Digits:
             image_path: Path,
             templates: Mapping[str, Sequence[Path]],
             template_matching_method: TemplateMatchingMethod,
-            canny_parameters: Mapping,
+            canny_parameters: CannyParam,
             threshold_values: Mapping[str, float],
             grouping_distance: int,
     ):
@@ -115,7 +116,7 @@ class Digits:
         self.template_matching_method = template_matching_method
 
         self.edges = None
-        self.canny_parameters = canny_parameters
+        self.canny_parameters = canny_parameters.parameters
         self.threshold_values = pd.Series(threshold_values)
         self._analyse()
         self._normalise()
@@ -170,7 +171,7 @@ class Digits:
 if __name__ == '__main__':
     os.chdir('../data')
     templates = {i: [Path('./digit_templates') / f"{i}.jpg"] for i in "1 2 3 4 5".split()}
-    canny_parameters = {'threshold1': 400, 'threshold2': 1000}
+    canny_parameters = CannyParameters()
     thresholds = {
         '1': 0.5,
         '2': 0.3,

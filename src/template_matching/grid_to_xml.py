@@ -3,7 +3,6 @@
 
 __author__ = 'AnttiHaerkoenen'
 
-import os
 from pathlib import Path
 from collections import OrderedDict
 from datetime import datetime
@@ -13,9 +12,9 @@ import xmltodict
 from pdftabextract import imgproc, extract
 import numpy as np
 
-from src import ocr_tools
-from .rectangle import Rectangle, get_rectangle_coords
-from .parameters import DetectLinesParam
+from src.template_matching import ocr_tools
+from src.template_matching.rectangle import Rectangle, get_rectangle_coords
+from src.template_matching.parameters import DetectLinesParam
 
 
 PAGE_TEMPLATE = r'../src/PAGE_template.xml'
@@ -46,7 +45,7 @@ def page_grid_to_xml(
     img_proc_obj = imgproc.ImageProc(str(img_file))
     hough_param = DetectLinesParam(img_proc_obj, **hough_param)
 
-    lines_hough = img_proc_obj.detect_lines(**hough_param.params)
+    lines_hough = img_proc_obj.detect_lines(**hough_param.parameters)
     img_proc_obj.lines_hough = lines_hough
 
     ocr_tools.save_image_w_lines(
