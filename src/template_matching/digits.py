@@ -170,8 +170,13 @@ class Digits:
 
 if __name__ == '__main__':
     os.chdir('../data')
-    templates = {i: [Path('./digit_templates') / f"{i}.jpg"] for i in "1 2 3 4 5".split()}
-    canny_parameters = CannyParameters()
+    templates = {
+        i: [
+            Path('./digit_templates/1900') / f"{i}_{j}.jpg"
+            for j in '1 2'.split()
+        ] for i in "1 2 3 4 5".split()
+    }
+    canny_parameters = CannyParam()
     thresholds = {
         '1': 0.5,
         '2': 0.3,
@@ -180,13 +185,13 @@ if __name__ == '__main__':
         '5': 0.3,
     }
     digits = Digits(
-        image_path=Path('test.jpg'),
+        image_path=Path('test1.jpg'),
         templates=templates,
         canny_parameters=canny_parameters,
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
         threshold_values=thresholds,
-        grouping_distance=5,
+        grouping_distance=3,
     )
-    print(digits.digit_locations.grouped)
+    print(digits.digit_locations.combined)
     # print(digits.coordinates['1 2 3 4 5'.split()].sum(axis=1) == digits.coordinates['1 2 3 4 5'.split()].max(axis=1))
     # digits._locations.plot(kind='hist', bins=250, xlim=(0, 0.2), stacked=True)

@@ -6,25 +6,25 @@ import imutils
 import numpy as np
 from skimage import morphology
 
-from .enums import TemplateMatchingMethod
-from .rectangle import Rectangle
+from src.template_matching.enums import TemplateMatchingMethod
+from src.template_matching.rectangle import Rectangle
 
 
 def view_rectangle(rect: Rectangle, img_file: str):
     with Image.open(img_file) as img:
-        box = img.crop(rect.pil_box)
+        box = img.crop(rect.coords)
         box.show()
 
 
 if __name__ == '__main__':
-    os.chdir('../data')
-    image = cv2.imread('test.jpg', cv2.IMREAD_GRAYSCALE)
-    image_rgb = cv2.imread('test.jpg', cv2.IMREAD_COLOR)
+    os.chdir('../../data')
+    image = cv2.imread('test1.jpg', cv2.IMREAD_GRAYSCALE)
+    image_rgb = cv2.imread('test1.jpg', cv2.IMREAD_COLOR)
 
     edges = cv2.Canny(image, 400, 1000)
     cv2.imwrite('canny.jpg', edges)
 
-    template = cv2.imread('5.jpg', cv2.IMREAD_GRAYSCALE)
+    template = cv2.imread('1_1.jpg', cv2.IMREAD_GRAYSCALE)
     h, w = template.shape
 
     res = cv2.matchTemplate(edges, template, cv2.TM_CCOEFF_NORMED)
