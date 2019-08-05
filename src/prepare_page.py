@@ -95,8 +95,32 @@ def straighten_page(
 
 def prepare_pages(
         img_files: Sequence[str],
+        data_dir: str,
+        output_file: str,
 ):
-    pass
+    for file in img_files:
+        crop_page(
+            img_file=file,
+            data_dir=data_dir,
+            output_file='temp.jpg',
+            top=300,
+            bottom=100,
+            left=450,
+            right=250,
+        )
+        straighten_page(
+            img_file='temp.jpg',
+            data_dir=data_dir,
+            output_file='temp.jpg',
+            split_position=0.5,
+        )
+        cut_names(
+            img_file='temp.jpg',
+            data_dir=data_dir,
+            output_file=output_file,
+            left=100,
+            right=2000,
+        )
 
 
 if __name__ == '__main__':
