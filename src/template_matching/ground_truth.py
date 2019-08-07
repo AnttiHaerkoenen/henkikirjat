@@ -1,10 +1,9 @@
 from pathlib import Path
-import string
+import json
 
 import cv2
-import xmltodict
 
-from rectangle import Rectangle
+from src.template_matching.rectangle import Rectangle
 
 
 def get_ground_truth(
@@ -12,9 +11,10 @@ def get_ground_truth(
         grid: Path,
 ):
     img = cv2.imread(str(image))
+    # todo convert to json grid
     data = xmltodict.parse(grid.read_text())
     regions = data['PcGts']['Page']['TableRegion']['TextRegion']
-    for i, region in enumerate(regions):
+    for region in enumerate(regions):
         rect = Rectangle.from_xml_dict(region)
         box = img[rect.np_slice]
         win_name = rect.id
@@ -25,26 +25,10 @@ def get_ground_truth(
             rect.content = digit
             regions[i] = rect.to_xml_dict()
         cv2.destroyWindow(win_name)
-    grid.write_text(xmltodict.unparse(
-        data,
-        pretty=True,
-        short_empty_elements=True,
-    ))
+    # todo write to grid
 
 
 if __name__ == '__main__':
-    im = Path('../data/test.jpg')
+    im = Path('../data/test1.jpg')
     grid = Path('../data/grids/test.xml')
     get_ground_truth(im, grid)
-
-
-
-
-
-
-
-
-
-
-
-

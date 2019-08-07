@@ -47,7 +47,7 @@ def predict_page_content(
     grid_path = Path(grid_file)
     make_page_grid(
         images=images,
-        data_dir=data_dir,
+        data_dir=os.curdir,
         grid=grid_file,
         output_dir=None,
         **grid_parameters.parameters,
@@ -57,6 +57,7 @@ def predict_page_content(
     grid = json.loads(grid_path.read_text())
 
     for image in images:
+        img_basename = image.split('.')[0]
         digits = Digits(
             image_path=Path(image),
             templates=templates,
@@ -65,7 +66,7 @@ def predict_page_content(
             threshold_values=digit_threshold_values,
             grouping_distance=grouping_distance,
         )
-        rectangles = [Rectangle.from_json_dict(rect) for rect in grid[image]]
+        rectangles = [Rectangle.from_json_dict(rect) for rect in grid[img_basename]]
         rectangles = match_locations_to_rectangles(digits, rectangles)
         grid[image] = [rect.to_json_dict() for rect in rectangles]
 
@@ -83,15 +84,22 @@ if __name__ == '__main__':
     )
     canny_par = CannyParam()
     digit_thresholds = {
-        '1': 0.5,
+        '1': 0.3,
+        '2': 0.3,
+        '3': 0.3,
+        '4': 0.3,
+        '5': 0.3,
     }
-    templates = {}
-
+    templates = {
+        i: [
+            Path('./digit_templates/1900') / f"{i}_{j}.jpg" for j in [1, 2]
+        ] for i in "1 2 3 4 5".split()
+    }
     predict_page_content(
         images=['test1.jpg', 'test2.jpg'],
         grid_file='./grids/test.json',
         data_dir='../../data',
-        grouping_distance=3,
+        grouping_distance=5,
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
         templates=templates,
         grid_parameters=grid_param,
