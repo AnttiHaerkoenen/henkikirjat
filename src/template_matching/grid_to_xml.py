@@ -82,7 +82,7 @@ def page_grid_to_xml(
             }],
     })
     table_region = OrderedDict({
-        '@id': 'r1',
+        '@rect_id': 'r1',
         '@lineSeparators': 'true',
         'Coords': OrderedDict(
             {'@points': get_rectangle_coords(page_col_pos, page_row_pos)}
@@ -100,12 +100,12 @@ def page_grid_to_xml(
                 x_max=max(xs),
                 y_min=min(ys),
                 y_max=max(ys),
-                id=f'r{n}',
+                rect_id=f'r{n}',
             )
             table_region['TextRegion'].append(rect.to_xml_dict())
             reading_order['RegionRefIndexed'].append({
                 '@index': n,
-                '@regionRef': rect.id,
+                '@regionRef': rect.rect_id,
             })
 
     doc['PcGts']['Page']['TableRegion'] = table_region
@@ -118,7 +118,7 @@ def page_grid_to_xml(
         short_empty_elements=True,
     )
     grid_path.write_text(output)
-    print("grid saved to XML")
+    print("grid_path saved to XML")
 
 
 if __name__ == '__main__':

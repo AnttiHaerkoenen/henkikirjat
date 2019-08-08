@@ -9,7 +9,7 @@ class Rectangle:
     y_min: int
     x_max: int
     y_max: int
-    id: Union[str, None] = None
+    rect_id: Union[str, None] = None
     content: Union[str, None] = None
     predicted: Union[List[List], None] = None
 
@@ -19,7 +19,7 @@ class Rectangle:
             y_min,
             x_max,
             y_max,
-            id=None,
+            rect_id=None,
             content=None,
             predicted=None,
     ):
@@ -31,7 +31,7 @@ class Rectangle:
         self.y_min = int(y_min)
         self.x_max = int(x_max)
         self.y_max = int(y_max)
-        self.id = str(id)
+        self.rect_id = str(rect_id)
         self.content = content
         self.predicted = predicted
 
@@ -72,7 +72,7 @@ class Rectangle:
     def from_json_dict(data_dict):
         return Rectangle(
             *data_dict['coords'],
-            data_dict['id'],
+            data_dict['rect_id'],
             data_dict['content'],
             data_dict['predicted'],
         )
@@ -91,13 +91,13 @@ class Rectangle:
             int(maxes[0]),
             int(mins[1]),
             int(maxes[1]),
-            data_dict.get('@id', None),
+            data_dict.get('@rect_id', None),
             content,
         )
 
     def to_json_dict(self):
         return {
-            'id': self.id,
+            'rect_id': self.rect_id,
             'coords': self.coords,
             'content': self.content,
             'predicted': self.predicted,
@@ -105,7 +105,7 @@ class Rectangle:
 
     def to_xml_dict(self) -> OrderedDict:
         dict_ = OrderedDict({
-                '@id': self.id,
+                '@rect_id': self.rect_id,
                 '@type': 'paragraph',
                 'Coords': OrderedDict({'@points': self.xml_coords}),
             })

@@ -81,7 +81,7 @@ def make_page_grid(
                     x_max=max(xs),
                     y_min=min(ys),
                     y_max=max(ys),
-                    id=f'r{n}',
+                    rect_id=f'r{n}',
                 )
                 rects.append(rect.to_json_dict())
 

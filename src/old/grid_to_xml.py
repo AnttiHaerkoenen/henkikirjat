@@ -141,7 +141,7 @@ def page_grid_to_xml(
             }],
     })
     table_region = OrderedDict({
-        '@id': 'r1',
+        '@rect_id': 'r1',
         '@lineSeparators': 'true',
         'Coords': OrderedDict(
             {'@points': get_rectangle_coords(page_col_pos, page_row_pos)}
@@ -175,7 +175,7 @@ def page_grid_to_xml(
         .replace('></Coords>', '/>')\
         .replace('></RegionRefIndexed>', '/>')
     grid_path.write_text(output)
-    print("grid saved to XML")
+    print("grid_path saved to XML")
 
 
 if __name__ == '__main__':

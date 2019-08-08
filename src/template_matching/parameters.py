@@ -28,8 +28,8 @@ class GridParam:
 
 @dataclass
 class CannyParam:
-    lower_threshold = 400
-    upper_threshold = 1000
+    lower_threshold: int
+    upper_threshold: int
 
     @property
     def parameters(self):

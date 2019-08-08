@@ -34,6 +34,7 @@ def match_locations_to_rectangles(
 def predict_page_content(
         images: Sequence[str],
         grid_file,
+        make_grid: bool,
         data_dir,
         templates: Mapping[str, Sequence[Path]],
         digit_threshold_values: Mapping[str, float],
@@ -45,15 +46,16 @@ def predict_page_content(
 ):
     os.chdir(data_dir)
     grid_path = Path(grid_file)
-    make_page_grid(
-        images=images,
-        data_dir=os.curdir,
-        grid=grid_file,
-        output_dir=None,
-        **grid_parameters.parameters,
-        draw_lines=False,
-        **hough_parameters
-    )
+    if make_page_grid:
+        make_page_grid(
+            images=images,
+            data_dir=os.curdir,
+            grid=grid_file,
+            output_dir=None,
+            **grid_parameters.parameters,
+            draw_lines=False,
+            **hough_parameters
+        )
     grid = json.loads(grid_path.read_text())
 
     for image in images:
@@ -68,7 +70,7 @@ def predict_page_content(
         )
         rectangles = [Rectangle.from_json_dict(rect) for rect in grid[img_basename]]
         rectangles = match_locations_to_rectangles(digits, rectangles)
-        grid[image] = [rect.to_json_dict() for rect in rectangles]
+        grid[img_basename] = [rect.to_json_dict() for rect in rectangles]
 
     grid_path.write_text(json.dumps(grid, indent=4))
 
@@ -82,13 +84,13 @@ if __name__ == '__main__':
         x_offset=0,
         y_offset=10,
     )
-    canny_par = CannyParam()
+    canny_par = CannyParam(400, 1000)
     digit_thresholds = {
         '1': 0.3,
-        '2': 0.3,
-        '3': 0.3,
-        '4': 0.3,
-        '5': 0.3,
+        '2': 0.2,
+        '3': 0.2,
+        '4': 0.2,
+        '5': 0.2,
     }
     templates = {
         i: [
@@ -98,6 +100,7 @@ if __name__ == '__main__':
     predict_page_content(
         images=['test1.jpg', 'test2.jpg'],
         grid_file='./grids/test.json',
+        make_grid=False,
         data_dir='../../data',
         grouping_distance=5,
         template_matching_method=TemplateMatchingMethod.CCOEF_NORM,
