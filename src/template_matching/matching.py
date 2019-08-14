@@ -90,7 +90,7 @@ if __name__ == '__main__':
     )
     canny_par = CannyParam(400, 1000)
     digit_thresholds = {
-        '1': 0.3,
+        '1': 0.2,
         '2': 0.2,
         '3': 0.2,
         '4': 0.2,
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     }
     templates = {
         i: [
-            Path('./digit_templates/1900') / f"{i}_{j}.jpg" for j in [1, 2]
+            Path('./digit_templates/1900') / f"{i}_{j}.jpg" for j in "1 2 3 4 5".split()
         ] for i in "1 2 3 4 5".split()
     }
     predict_page_content(

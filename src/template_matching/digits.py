@@ -176,7 +176,7 @@ if __name__ == '__main__':
             for j in '1 2'.split()
         ] for i in "1 2 3 4 5".split()
     }
-    canny_parameters = CannyParam()
+    canny_parameters = CannyParam(250, 1000)
     thresholds = {
         '1': 0.5,
         '2': 0.3,
