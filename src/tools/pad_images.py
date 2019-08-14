@@ -8,7 +8,7 @@ import numpy as np
 def pad_image(img, pad, h_new, w_new):
     image = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
     h, w = image.shape
-    if not (h <= h_new and w <= w_new):
+    if h > h_new or w > w_new:
         raise ValueError("New size must be larger than old")
     top, r = divmod(h_new - h, 2)
     bottom = top + r

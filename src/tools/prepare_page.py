@@ -5,10 +5,10 @@ from typing import Sequence
 import numpy as np
 from PIL import Image
 from pdftabextract import imgproc
-from pdftabextract.common import ROTATION, DIRECTION_HORIZONTAL, DIRECTION_VERTICAL
+from pdftabextract.common import ROTATION, DIRECTION_HORIZONTAL
 import cv2
 
-from src.split_page import split_page
+from src.tools.split_page import split_page
 from src.template_matching.parameters import DetectLinesParam
 
 
