@@ -23,9 +23,18 @@ def remove_lines(
     for i, dist in enumerate(d):
         for j, angle in enumerate(theta):
             if threshold < h[i, j]:
-                # todo find intersecting lines
-                rr, cc = line(x0, y0, x1, y1)
-                img[rr, cc] = 1
+                points = [
+                    (0, int(dist // np.sin(angle))),
+                    (width, int((dist - width * np.cos(angle)) // np.sin(angle))),
+                    (int(dist // np.cos(angle)), 0),
+                    (int((dist - height * np.sin(angle)) // np.cos(angle)), height),
+                ]
+                points = [p for p in points if (0 <= p[0] < width and 0 <= p[1] < height)]
+                print(points)
+                if len(points) == 2:
+                    p1, p2 = points
+                    rr, cc = line(*p1, *p2)
+                    img[rr, cc] = 1
     return img
 
 
