@@ -1,7 +1,11 @@
+import math
+from functools import reduce
+
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 
+from skimage.morphology import binary_dilation
 from skimage.color import rgb2gray
 from skimage.util import invert
 from skimage.io import imread
@@ -20,21 +24,34 @@ def remove_lines(
     h, theta, d = hough_line(img, theta=theta_both)
     width, height = img.shape
 
+    lines = []
+
     for i, dist in enumerate(d):
         for j, angle in enumerate(theta):
             if threshold < h[i, j]:
+                # todo fix
+                # points = [
+                #     (0, int(dist // np.sin(angle))),
+                #     (width, int((dist - width * np.cos(angle)) // np.sin(angle))),
+                #     (int(dist // np.cos(angle)), 0),
+                #     (int((dist - height * np.sin(angle)) // np.cos(angle)), height),
+                # ]
                 points = [
-                    (0, int(dist // np.sin(angle))),
-                    (width, int((dist - width * np.cos(angle)) // np.sin(angle))),
-                    (int(dist // np.cos(angle)), 0),
-                    (int((dist - height * np.sin(angle)) // np.cos(angle)), height),
+                    (int(dist // np.sin(angle)), 0),
+                    (int((dist - width * np.cos(angle)) // np.sin(angle)), width),
+                    (0, int(dist // np.cos(angle))),
+                    (height, int((dist - height * np.sin(angle)) // np.cos(angle))),
                 ]
                 points = [p for p in points if (0 <= p[0] < width and 0 <= p[1] < height)]
-                print(points)
                 if len(points) == 2:
                     p1, p2 = points
                     rr, cc = line(*p1, *p2)
-                    img[rr, cc] = 1
+                    line_img = np.zeros_like(img)
+                    line_img[rr, cc] = 1
+                    lines.append(line_img)
+    mask = reduce(np.maximum, lines)
+    mask = binary_dilation(mask)
+    # todo masking
     return img
 
 
