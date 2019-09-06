@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 
-from skimage.morphology import binary_dilation
+from skimage.morphology import binary_dilation, binary_opening, binary_closing
 from skimage.color import rgb2gray
 from skimage.util import invert
 from skimage.io import imread
@@ -22,36 +22,30 @@ def remove_lines(
     theta_h = theta_v + np.pi / 2
     theta_both = np.concatenate((theta_v, theta_h))
     h, theta, d = hough_line(img, theta=theta_both)
-    width, height = img.shape
+    height, width = img.shape
+    y_max, x_max = height - 1, width - 1
 
     lines = []
 
     for i, dist in enumerate(d):
         for j, angle in enumerate(theta):
             if threshold < h[i, j]:
-                # todo fix
-                # points = [
-                #     (0, int(dist // np.sin(angle))),
-                #     (width, int((dist - width * np.cos(angle)) // np.sin(angle))),
-                #     (int(dist // np.cos(angle)), 0),
-                #     (int((dist - height * np.sin(angle)) // np.cos(angle)), height),
-                # ]
                 points = [
                     (int(dist // np.sin(angle)), 0),
-                    (int((dist - width * np.cos(angle)) // np.sin(angle)), width),
+                    (int((dist - x_max * np.cos(angle)) // np.sin(angle)), x_max),
                     (0, int(dist // np.cos(angle))),
-                    (height, int((dist - height * np.sin(angle)) // np.cos(angle))),
+                    (y_max, int((dist - y_max * np.sin(angle)) // np.cos(angle))),
                 ]
-                points = [p for p in points if (0 <= p[0] < width and 0 <= p[1] < height)]
+                points = [p for p in points if (0 <= p[0] <= y_max and 0 <= p[1] <= x_max)]
                 if len(points) == 2:
                     p1, p2 = points
-                    rr, cc = line(*p1, *p2)
+                    rr, cc = line(p1[0], p1[1], p2[0], p2[1])
                     line_img = np.zeros_like(img)
                     line_img[rr, cc] = 1
                     lines.append(line_img)
     mask = reduce(np.maximum, lines)
     mask = binary_dilation(mask)
-    # todo masking
+    img[mask] = 0
     return img
 
 
