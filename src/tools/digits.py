@@ -1,8 +1,9 @@
 from typing import Union, Callable, Dict, Tuple
+from pathlib import Path
+import json
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from skimage.io import imread
 from skimage.util import invert
 from skimage.filters import threshold_yen
@@ -12,6 +13,27 @@ from skimage.morphology import closing, square
 from skimage.color import label2rgb, rgb2gray
 
 from src.tools.line_finder import remove_lines
+
+
+def resize_digit(digit, shape):
+    r, c = digit.shape
+    r0, c0 = shape
+    dr = r - r0
+    dc = c - c0
+    pad_top, pad_bottom = divmod(dr, 2)
+    pad_bottom += pad_top
+    pad_left, pad_right = divmod(dc, 2)
+    pad_right += pad_left
+
+    digit = np.pad(
+        digit,
+        pad_width=((pad_top, pad_bottom), (pad_left, pad_right)),
+        mode='constant',
+        constant_values=0,
+    )
+    digit = digit[:r0, :c0]
+
+    return digit
 
 
 def extract_digits(
@@ -37,6 +59,22 @@ def extract_digits(
     digits = {r.bbox: r.image for r in regionprops(label_image, cache=True) if min_area <= r.area}
 
     return digits
+
+
+def save_digits(
+        digits,
+        img_name,
+):
+    json_name = f'{img_name}_truth.json'
+    outf = Path(json_name)
+    characters = dict()
+    for digit in digits:
+        plt.imshow(digit.image)
+        # todo input
+        char = None
+        characters[digit.centroid] = char
+    data = {digit.centroid: (characters[digit.centroid], digit.image) for digit in digits}
+    outf.write_text(json.dumps(data))
 
 
 if __name__ == '__main__':
