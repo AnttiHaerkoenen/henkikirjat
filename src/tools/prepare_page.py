@@ -3,10 +3,13 @@ import math
 from typing import Sequence
 
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image
 from pdftabextract import imgproc
 from pdftabextract.common import ROTATION, DIRECTION_HORIZONTAL
 import cv2
+from skimage.feature import match_template
+from skimage.io import imread
 
 from src.tools.split_page import split_page
 from src.template_matching.parameters import DetectLinesParam
@@ -123,26 +126,67 @@ def prepare_pages(
         )
 
 
+def find_columns(img_file, header_file):
+    image = imread(img_file)
+    header = imread(header_file)
+    h, w = header.shape
+    result = match_template(image, header, pad_input=True)
+    r, c = np.unravel_index(result.argmax(), image.shape)
+    return r, c, h, w
+
+
+def clip_numbers(
+        img_file,
+        plot_header_file,
+        taxpayer_header_file,
+        *,
+        col_height,
+        plot_col_width,
+        pop_col_width,
+):
+    r0, c0, h0, w0 = find_columns(img_file, plot_header_file)
+    r1, c1, h1, w1 = find_columns(img_file, taxpayer_header_file)
+    image = imread(img_file)
+    plots = image[] # todo
+    pops = image[] # todo
+    print(image.shape)
+    print(plots.shape)
+    print(pops.shape)
+    return np.hstack([plots, pops])
+
+
 if __name__ == '__main__':
-    crop_page(
-        img_file='5104.jpg',
-        output_file='test1.jpg',
-        data_dir='../data',
-        top=300,
-        bottom=100,
-        left=450,
-        right=250,
+    os.chdir('../../data')
+    clipped = clip_numbers(
+        '5104.jpg',
+        'plot_header.jpg',
+        'taxpayer_header.jpg',
+        header_height=280,
+        col_height=2300,
+        plot_col_width=82,
+        pop_col_width=1375,
     )
-    straighten_page(
-        img_file='test1.jpg',
-        data_dir='../data',
-        output_file='test1.jpg',
-        split_position=0.5,
-    )
-    cut_names(
-        img_file='test1.jpg',
-        data_dir='../data',
-        output_file='test1.jpg',
-        left=100,
-        right=2000,
-    )
+    fig = plt.imshow(clipped)
+    plt.show()
+    # crop_page(
+    #     img_file='5104.jpg',
+    #     output_file='test1.jpg',
+    #     data_dir='../data',
+    #     top=300,
+    #     bottom=100,
+    #     left=450,
+    #     right=250,
+    # )
+    # straighten_page(
+    #     img_file='test1.jpg',
+    #     data_dir='../data',
+    #     output_file='test1.jpg',
+    #     split_position=0.5,
+    # )
+    # cut_names(
+    #     img_file='test1.jpg',
+    #     data_dir='../data',
+    #     output_file='test1.jpg',
+    #     left=100,
+    #     right=2000,
+    # )

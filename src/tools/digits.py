@@ -15,6 +15,37 @@ import cv2
 from src.tools.line_finder import remove_lines
 
 
+class DigitFilter:
+    def __init__(
+            self,
+            min_area=0,
+            max_area=np.inf,
+            min_width=0,
+            max_width=np.inf,
+            min_height=0,
+            max_height=np.inf,
+    ):
+        self.min_area = min_area
+        self.max_area = max_area
+        self.min_width = min_width
+        self.max_width = max_width
+        self.min_height = min_height
+        self.max_height = max_height
+
+    def __call__(
+            self,
+            region,  # skimage.measure._RegionProperties object
+    ):
+        minr, minc, maxr, maxc = region.bbox
+        w = maxc - minc
+        h = maxr - minr
+        return all([
+            self.min_area <= region.area <= self.max_area,
+            self.min_width <= w <= self.max_width,
+            self.min_height <= h <= self.max_height,
+        ])
+
+
 def resize_digit(
         digit,
         shape,
@@ -52,7 +83,7 @@ def extract_digits(
         image: np.ndarray,
         remove_lines_threshold: int,
         threshold_method: Union[Callable, None],
-        min_area: int,
+        digit_filter: Callable,
         do_closing: bool = True,
 ) -> List[List]:
 
@@ -69,12 +100,12 @@ def extract_digits(
     label_image = label(bw)
     label_image = clear_border(label_image)
 
-    digits = [[r.bbox, r.image] for r in regionprops(label_image, cache=True) if min_area <= r.area]
+    digits = [[r.bbox, r.image] for r in regionprops(label_image, cache=True) if digit_filter(r)]
 
     return digits
 
 
-def save_digits(
+def save_ground_truth(
         digits,
         img_file,
         json_file=None,
@@ -87,6 +118,7 @@ def save_digits(
 
     i = 0
     characters = [None for _ in digits]
+
     while True:
         if not 0 <= i < len(digits):
             break
@@ -114,14 +146,22 @@ def save_digits(
 
 
 if __name__ == '__main__':
-    image = imread('../../data/test1.jpg')
+    img_file = '../../data/test1.jpg'
+    image = imread(img_file)
     h, w, _ = image.shape
     image = invert(rgb2gray(image))
 
-    digits = extract_digits(image, 700, None, 150, do_closing=True)
+    digit_filter = DigitFilter(
+        min_area=100,
+        max_area=500,
+        min_width=30,
+        min_height=30,
+    )
+
+    digits = extract_digits(image, 700, None, digit_filter, do_closing=True)
     digits = [[dig[0], resize_digit(dig[1], (50, 50))] for dig in digits]
 
-    save_digits(digits[100:], '../../data/test1.jpg')
+    save_ground_truth(digits, img_file)
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
     # ax = axes.ravel()
