@@ -12,6 +12,7 @@ from skimage.measure import label, regionprops
 from skimage.morphology import closing, square
 from skimage.color import label2rgb, rgb2gray
 import cv2
+import matplotlib.pyplot as plt
 
 from src.tools.line_finder import remove_lines
 from src.tools.prepare_page import clip_numbers
@@ -108,15 +109,20 @@ def extract_digits(
 
 
 def save_ground_truth(
+        *,
         digits,
+        image=None,
         img_file,
         json_file=None,
 ):
     if json_file is None:
         json_file = '.'.join(img_file.split('.')[:-1])
         json_file = f'{json_file}_truth.json'
+
+    if image is None:
+        image = imread(img_file)
+
     outf = Path(json_file)
-    img = cv2.imread(img_file)
 
     i = 0
     characters = [None for _ in digits]
@@ -128,7 +134,7 @@ def save_ground_truth(
         bbox, _ = digits[i]
         win_name = f'Digit {i} at {bbox[0]}, {bbox[1]}'
         minr, minc, maxr, maxc = bbox
-        box = img[minr:maxr, minc:maxc]
+        box = image[minr:maxr, minc:maxc]
 
         cv2.imshow(win_name, box)
         key = cv2.waitKeyEx(0)
@@ -149,7 +155,7 @@ def save_ground_truth(
 
 if __name__ == '__main__':
     os.chdir('../../data')
-    img_file = '5104.jpg'
+    img_file = '5105.jpg'
     image = clip_numbers(
         img_file,
         'plot_header.jpg',
@@ -159,19 +165,25 @@ if __name__ == '__main__':
         pop_col_width=1375,
     )
     h, w = image.shape
-    image = invert(rgb2gray(image))
+    image = invert(image)
+    plt.imshow(image)
+    plt.show()
 
     digit_filter = DigitFilter(
         min_area=100,
         max_area=500,
-        min_width=30,
+        min_width=20,
         min_height=30,
     )
 
-    digits = extract_digits(image, 700, None, digit_filter, do_closing=True)
+    digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
     digits = [[dig[0], resize_digit(dig[1], (50, 50))] for dig in digits]
 
-    save_ground_truth(digits, img_file)
+    save_ground_truth(
+        digits=digits,
+        image=image,
+        img_file=img_file,
+    )
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
     # ax = axes.ravel()
