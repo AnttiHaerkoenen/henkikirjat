@@ -1,6 +1,7 @@
 from typing import Union, Callable, List
 from pathlib import Path
 import json
+import os
 
 import numpy as np
 from skimage.io import imread
@@ -13,6 +14,7 @@ from skimage.color import label2rgb, rgb2gray
 import cv2
 
 from src.tools.line_finder import remove_lines
+from src.tools.prepare_page import clip_numbers
 
 
 class DigitFilter:
@@ -146,9 +148,17 @@ def save_ground_truth(
 
 
 if __name__ == '__main__':
-    img_file = '../../data/test1.jpg'
-    image = imread(img_file)
-    h, w, _ = image.shape
+    os.chdir('../../data')
+    img_file = '5104.jpg'
+    image = clip_numbers(
+        img_file,
+        'plot_header.jpg',
+        'taxpayer_header.jpg',
+        col_height=2350,
+        plot_col_width=82,
+        pop_col_width=1375,
+    )
+    h, w = image.shape
     image = invert(rgb2gray(image))
 
     digit_filter = DigitFilter(

@@ -147,11 +147,14 @@ def clip_numbers(
     r0, c0, h0, w0 = find_columns(img_file, plot_header_file)
     r1, c1, h1, w1 = find_columns(img_file, taxpayer_header_file)
     image = imread(img_file)
-    plots = image[] # todo
-    pops = image[] # todo
-    print(image.shape)
-    print(plots.shape)
-    print(pops.shape)
+    plots_start_r = r0 + h0 // 2
+    plots_start_c = c0 - w0 // 2
+    pops_start_r = r1 + h1 // 2
+    pops_start_c = c1 - w1 // 2
+    plots = image[plots_start_r: plots_start_r + col_height,
+            plots_start_c: plots_start_c + plot_col_width]
+    pops = image[pops_start_r: pops_start_r + col_height,
+           pops_start_c: pops_start_c + pop_col_width]
     return np.hstack([plots, pops])
 
 
@@ -161,8 +164,7 @@ if __name__ == '__main__':
         '5104.jpg',
         'plot_header.jpg',
         'taxpayer_header.jpg',
-        header_height=280,
-        col_height=2300,
+        col_height=2350,
         plot_col_width=82,
         pop_col_width=1375,
     )
