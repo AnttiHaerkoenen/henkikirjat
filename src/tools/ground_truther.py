@@ -71,8 +71,8 @@ if __name__ == '__main__':
         imgname = img.split('/')[-1]
         print(imgname)
         json_ = f"{imgname.split('.')[0]}_truth.json"
-        # if json_ in jsons:
-        #     continue
+        if json_ in jsons:
+            continue
         image = clip_numbers(
             img,
             '../plot_header.jpg',
