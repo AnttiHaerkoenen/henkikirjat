@@ -4,7 +4,9 @@ import json
 import os
 
 import numpy as np
+import pandas as pd
 from skimage.io import imread
+from skimage.transform import downscale_local_mean
 from skimage.util import invert
 from skimage.filters import threshold_yen
 from skimage.segmentation import clear_border
@@ -49,39 +51,6 @@ class DigitFilter:
         ])
 
 
-def resize_digit(
-        digit,
-        shape,
-        pad_value=0,
-):
-    r, c = digit.shape
-    r0, c0 = shape
-    dr = r0 - r
-    dc = c0 - c
-
-    if 0 <= dr:
-        pad_top, mod = divmod(dr, 2)
-        pad_bottom = pad_top + mod
-    else:
-        pad_top = pad_bottom = 0
-
-    if 0 <= dc:
-        pad_left, mod = divmod(dc, 2)
-        pad_right = pad_left + mod
-    else:
-        pad_left = pad_right = 0
-
-    digit = np.pad(
-        digit,
-        pad_width=((pad_top, pad_bottom), (pad_left, pad_right)),
-        mode='constant',
-        constant_values=pad_value,
-    )
-    digit = digit[:r0, :c0]
-
-    return digit
-
-
 def extract_digits(
         image: np.ndarray,
         remove_lines_threshold: int,
@@ -103,9 +72,21 @@ def extract_digits(
     label_image = label(bw)
     label_image = clear_border(label_image)
 
-    digits = [[r.bbox, r.image] for r in regionprops(label_image, cache=True) if digit_filter(r)]
+    digits = [r for r in regionprops(label_image, cache=True) if digit_filter(r)]
 
     return digits
+
+
+def digits_to_table(
+        digits,
+        ground_truth_file,
+        output_file,
+        digit_shape,
+):
+    for d in digits:
+        digit = downscale_local_mean(d, digit_shape, cval=0)
+        digit = digit.ravel()
+        # todo
 
 
 if __name__ == '__main__':
@@ -132,7 +113,7 @@ if __name__ == '__main__':
     )
 
     digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
-    digits = [[dig[0], resize_digit(dig[1], (50, 50))] for dig in digits]
+    digits = [[dig[0], downscale_local_mean(dig[1], (50, 50))] for dig in digits]
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
     # ax = axes.ravel()

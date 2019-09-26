@@ -33,7 +33,7 @@ def save_ground_truth(
         if not 0 <= i < len(digits):
             break
 
-        bbox, _ = digits[i]
+        bbox = digits[i].bbox
         win_name = f'Digit {i} at {bbox[0]}, {bbox[1]}'
         minr, minc, maxr, maxc = bbox
         box = image[minr:maxr, minc:maxc]
@@ -51,7 +51,7 @@ def save_ground_truth(
             break
         cv2.destroyAllWindows()
 
-    data = [[digit[0], characters[i]] for i, digit in enumerate(digits)]
+    data = [[digit.bbox, characters[i]] for i, digit in enumerate(digits)]
     outf.write_text(json.dumps(data, indent=True))
 
 
