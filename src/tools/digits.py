@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 
 from src.tools.line_finder import remove_lines
 from src.tools.prepare_page import clip_numbers
+from src.tools.ground_truther import save_ground_truth
 
 
 class DigitFilter:
@@ -108,54 +109,9 @@ def extract_digits(
     return digits
 
 
-def save_ground_truth(
-        *,
-        digits,
-        image=None,
-        img_file,
-        json_file=None,
-):
-    if json_file is None:
-        json_file = '.'.join(img_file.split('.')[:-1])
-        json_file = f'{json_file}_truth.json'
-
-    if image is None:
-        image = imread(img_file)
-
-    outf = Path(json_file)
-
-    i = 0
-    characters = [None for _ in digits]
-
-    while True:
-        if not 0 <= i < len(digits):
-            break
-
-        bbox, _ = digits[i]
-        win_name = f'Digit {i} at {bbox[0]}, {bbox[1]}'
-        minr, minc, maxr, maxc = bbox
-        box = image[minr:maxr, minc:maxc]
-
-        cv2.imshow(win_name, box)
-        key = cv2.waitKeyEx(0)
-        if key == 97:  # a
-            i -= 1
-        elif key == 100:  # d:
-            i += 1
-        elif 48 <= key <= 57:  # digits
-            characters[i] = str(key - 48)
-            i += 1
-        elif key in (27, 98):  # exit, b
-            break
-        cv2.destroyAllWindows()
-
-    data = [[digit[0], characters[i]] for i, digit in enumerate(digits)]
-    outf.write_text(json.dumps(data, indent=True))
-
-
 if __name__ == '__main__':
     os.chdir('../../data')
-    img_file = '5105.jpg'
+    img_file = '5104.jpg'
     image = clip_numbers(
         img_file,
         'plot_header.jpg',
