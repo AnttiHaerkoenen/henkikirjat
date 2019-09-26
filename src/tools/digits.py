@@ -84,7 +84,7 @@ def digits_to_table(
         digit_shape,
 ):
     for d in digits:
-        digit = downscale_local_mean(d, digit_shape, cval=0)
+        digit = downscale_local_mean(d.image, digit_shape, cval=0)
         digit = digit.ravel()
         # todo
 
