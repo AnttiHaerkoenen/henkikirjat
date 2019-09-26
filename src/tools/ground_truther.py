@@ -2,7 +2,6 @@ import os
 import glob
 from pathlib import Path
 import json
-import time
 
 import cv2
 from skimage.io import imread
@@ -65,12 +64,11 @@ if __name__ == '__main__':
         min_width=20,
         min_height=20,
     )
-
     jsons = [js.split('/')[-1] for js in glob.iglob('*.json')]
     for img in img_files:
-        imgname = img.split('/')[-1]
-        print(imgname)
-        json_ = f"{imgname.split('.')[0]}_truth.json"
+        img_name = img.split('/')[-1]
+        print(img_name)
+        json_ = f"{img_name.split('.')[0]}_truth.json"
         if json_ in jsons:
             continue
         image = clip_numbers(
@@ -84,7 +82,6 @@ if __name__ == '__main__':
         h, w = image.shape
         image = invert(image)
         digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
-
         save_ground_truth(
             digits=digits,
             image=image,
