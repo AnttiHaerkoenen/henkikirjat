@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 
 from src.tools.line_finder import remove_lines
 from src.tools.prepare_page import clip_numbers
-from src.tools.ground_truther import save_ground_truth
 
 
 class DigitFilter:
@@ -134,12 +133,6 @@ if __name__ == '__main__':
 
     digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
     digits = [[dig[0], resize_digit(dig[1], (50, 50))] for dig in digits]
-
-    save_ground_truth(
-        digits=digits,
-        image=image,
-        img_file=img_file,
-    )
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
     # ax = axes.ravel()

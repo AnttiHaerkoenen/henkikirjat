@@ -1,6 +1,8 @@
-import sys
+import os
+import glob
 from pathlib import Path
 import json
+import time
 
 import cv2
 from skimage.io import imread
@@ -55,19 +57,26 @@ def save_ground_truth(
 
 
 if __name__ == '__main__':
-    img_files = sys.argv[1:]
+    os.chdir('../../data/train')
+    img_files = glob.iglob('*.jpg')
     digit_filter = DigitFilter(
-        min_area=100,
+        min_area=50,
         max_area=500,
         min_width=20,
-        min_height=30,
+        min_height=20,
     )
 
+    jsons = [js.split('/')[-1] for js in glob.iglob('*.json')]
     for img in img_files:
+        imgname = img.split('/')[-1]
+        print(imgname)
+        json_ = f"{imgname.split('.')[0]}_truth.json"
+        # if json_ in jsons:
+        #     continue
         image = clip_numbers(
             img,
-            'plot_header.jpg',
-            'taxpayer_header.jpg',
+            '../plot_header.jpg',
+            '../taxpayer_header.jpg',
             col_height=2350,
             plot_col_width=82,
             pop_col_width=1375,
