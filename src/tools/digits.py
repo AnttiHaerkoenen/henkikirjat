@@ -149,9 +149,9 @@ if __name__ == '__main__':
             (50, 50),
             ground_truth_file=f'train/{i}_truth.json',
         )
-        data.append(pd.concat([labels, locs, images], axis=1))
+        data.append(pd.concat([labels, images], axis=1))
         print(i)
-    data = pd.concat(data, axis=0)
+    data = pd.concat(data, axis=0, ignore_index=True)
     data.to_csv(data_fp)
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
