@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 from skimage.io import imread
-from skimage.transform import downscale_local_mean
+from skimage.transform import downscale_local_mean, resize
 from skimage.util import invert
 from skimage.filters import threshold_yen
 from skimage.segmentation import clear_border
@@ -79,19 +79,43 @@ def extract_digits(
 
 def digits_to_table(
         digits,
-        ground_truth_file,
-        output_file,
         digit_shape,
+        ground_truth_file=None,
 ):
+    images = []
+    locs = []
     for d in digits:
-        digit = downscale_local_mean(d.image, digit_shape, cval=0)
+        digit = resize(d.image, digit_shape, mode='constant', cval=0)
         digit = digit.ravel()
-        # todo
+        images.append(digit)
+        locs.append(list(d.bbox))
+
+    labels = []
+    if ground_truth_file is not None:
+        ground_truth_fp = Path(ground_truth_file)
+        true_digits = json.loads(ground_truth_fp.read_text())
+        for d in digits:
+            for coords, label in true_digits:
+                if coords == list(d.bbox):
+                    labels.append(label)
+                    break
+            else:
+                labels.append(None)
+
+    images = np.vstack(images)
+    locs = pd.DataFrame(np.array(locs), columns='min_row min_col max_row max_col'.split())
+
+    if ground_truth_file is not None:
+        labels = pd.Series(labels)
+    else:
+        labels = None
+
+    return labels, locs, images
 
 
 if __name__ == '__main__':
     os.chdir('../../data')
-    img_file = '5104.jpg'
+    img_file = 'train/5084.jpg'
     image = clip_numbers(
         img_file,
         'plot_header.jpg',
@@ -113,7 +137,14 @@ if __name__ == '__main__':
     )
 
     digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
-    digits = [[dig[0], downscale_local_mean(dig[1], (50, 50))] for dig in digits]
+    labels, locs, images = digits_to_table(
+        digits,
+        (50, 50),
+        ground_truth_file='train/5084_truth.json',
+    )
+    print(labels)
+    print(locs)
+    print(images)
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
     # ax = axes.ravel()
