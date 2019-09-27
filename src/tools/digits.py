@@ -85,7 +85,12 @@ def digits_to_table(
     images = []
     locs = []
     for d in digits:
-        digit = resize(d.image, digit_shape, mode='constant', cval=0)
+        digit = resize(
+            d.image,
+            digit_shape,
+            mode='constant',
+            cval=0,
+        )
         digit = digit.ravel()
         images.append(digit)
         locs.append(list(d.bbox))
@@ -102,11 +107,11 @@ def digits_to_table(
             else:
                 labels.append(None)
 
-    images = np.vstack(images)
+    images = pd.DataFrame(np.vstack(images) > 0.5)
     locs = pd.DataFrame(np.array(locs), columns='min_row min_col max_row max_col'.split())
 
     if ground_truth_file is not None:
-        labels = pd.Series(labels)
+        labels = pd.Series(labels, name='label')
     else:
         labels = None
 
@@ -115,36 +120,39 @@ def digits_to_table(
 
 if __name__ == '__main__':
     os.chdir('../../data')
-    img_file = 'train/5084.jpg'
-    image = clip_numbers(
-        img_file,
-        'plot_header.jpg',
-        'taxpayer_header.jpg',
-        col_height=2350,
-        plot_col_width=82,
-        pop_col_width=1375,
-    )
-    h, w = image.shape
-    image = invert(image)
-    plt.imshow(image)
-    plt.show()
+    data_file = 'labeled.csv'
+    data_fp = Path(data_file)
+    data = []
+    for i in range(5084, 5184):
+        img_file = f'train/{i}.jpg'
+        image = clip_numbers(
+            img_file,
+            'plot_header.jpg',
+            'taxpayer_header.jpg',
+            col_height=2350,
+            plot_col_width=82,
+            pop_col_width=1375,
+        )
+        h, w = image.shape
+        image = invert(image)
 
-    digit_filter = DigitFilter(
-        min_area=100,
-        max_area=500,
-        min_width=20,
-        min_height=30,
-    )
+        digit_filter = DigitFilter(
+            min_area=100,
+            max_area=500,
+            min_width=20,
+            min_height=30,
+        )
 
-    digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
-    labels, locs, images = digits_to_table(
-        digits,
-        (50, 50),
-        ground_truth_file='train/5084_truth.json',
-    )
-    print(labels)
-    print(locs)
-    print(images)
+        digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
+        labels, locs, images = digits_to_table(
+            digits,
+            (50, 50),
+            ground_truth_file=f'train/{i}_truth.json',
+        )
+        data.append(pd.concat([labels, locs, images], axis=1))
+        print(i)
+    data = pd.concat(data, axis=0)
+    data.to_csv(data_fp)
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
     # ax = axes.ravel()
