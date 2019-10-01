@@ -2,6 +2,7 @@ from typing import Union, Callable, List
 from pathlib import Path
 import json
 import os
+import glob
 
 import numpy as np
 import pandas as pd
@@ -123,7 +124,7 @@ if __name__ == '__main__':
     data_file = 'labeled.csv'
     data_fp = Path(data_file)
     data = []
-    for i in range(5084, 5184):
+    for i in {file.split('/')[-1].split('_')[0] for file in glob.iglob('./train/*.json')}:
         img_file = f'train/{i}.jpg'
         image = clip_numbers(
             img_file,
