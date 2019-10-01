@@ -6,7 +6,7 @@ import glob
 
 import numpy as np
 import pandas as pd
-from skimage.io import imread
+from skimage.io import imread, imshow
 from skimage.transform import downscale_local_mean, resize
 from skimage.util import invert
 from skimage.filters import threshold_yen
@@ -117,6 +117,14 @@ def digits_to_table(
         labels = None
 
     return labels, locs, images
+
+
+def view_digit(data: pd.Series, shape):
+    image = data.values[1:].reshape(shape).astype(bool)
+    fig, ax = plt.subplots(1, 1)
+    ax.imshow(image)
+    ax.set_title(f"Label: {int(data[0])}")
+    plt.show()
 
 
 if __name__ == '__main__':
