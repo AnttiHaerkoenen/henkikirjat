@@ -19,6 +19,9 @@ def download_series_from_na(numbers, folder):
     os.chdir(folder)
     print("Downloading...")
     for k, v in numbers.items():
+        if os.path.isfile(f'{k}.jpg'):
+            print(f"Page {k} already exists.")
+            continue
         try:
             url = f"{DIGINARC}fetch_hqjpg.ka?kuid={v}"
             response = requests.get(url, headers=headers, timeout=5)

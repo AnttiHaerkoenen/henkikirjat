@@ -35,5 +35,5 @@ if __name__ == '__main__':
     y_predict = model.predict(X_test)
     errors = confusion_matrix(y_test, y_predict)
     report = classification_report(y_test, y_predict)
-    print(errors)
     print(report)
+    print(errors)
