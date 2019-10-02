@@ -127,41 +127,92 @@ def view_digit(data: pd.Series, shape):
     plt.show()
 
 
-if __name__ == '__main__':
-    os.chdir('../../data')
-    data_file = 'labeled.csv'
-    data_fp = Path(data_file)
+def save_training_data(
+        data_dir: str,
+        output_file: str,
+        digit_shape: tuple,
+        digit_filter: DigitFilter,
+        **clip_numbers_param
+):
+    os.chdir(data_dir)
+    outf = Path(output_file)
     data = []
-    for i in {file.split('/')[-1].split('_')[0] for file in glob.iglob('./train/*.json')}:
+    page_numbers = {
+        file.split('/')[-1].split('_')[0]
+        for file in glob.iglob(f"{data_dir}/*_truth.json")
+    }
+    for i in page_numbers:
         img_file = f'train/{i}.jpg'
-        image = clip_numbers(
-            img_file,
-            'plot_header.jpg',
-            'taxpayer_header.jpg',
-            col_height=2350,
-            plot_col_width=82,
-            pop_col_width=1375,
-        )
-        h, w = image.shape
+        image = clip_numbers(img_file, **clip_numbers_param)
         image = invert(image)
-
-        digit_filter = DigitFilter(
-            min_area=100,
-            max_area=500,
-            min_width=20,
-            min_height=30,
-        )
 
         digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
         labels, locs, images = digits_to_table(
             digits,
-            (50, 50),
+            digit_shape,
             ground_truth_file=f'train/{i}_truth.json',
         )
         data.append(pd.concat([labels, images], axis=1))
         print(i)
     data = pd.concat(data, axis=0, ignore_index=True)
-    data.to_csv(data_fp)
+    data.to_csv(outf)
+
+
+if __name__ == '__main__':
+    data_dir = ''
+    output_file = ''
+    digit_filter = DigitFilter(
+        min_area=50,
+        max_area=500,
+        min_width=20,
+        min_height=20,
+        max_width=100,
+        max_height=100,
+    )
+    save_training_data(
+        data_dir=data_dir,
+        output_file=output_file,
+        digit_shape=(40, 40),
+        digit_filter=digit_filter,
+        col_height=2350,
+        plot_col_width=82,
+        pop_col_width=1375,
+    )
+    # os.chdir('../../data')
+    # data_file = 'labeled.csv'
+    # data_fp = Path(data_file)
+    # data = []
+    # for i in {file.split('/')[-1].split('_')[0] for file in glob.iglob('./train/*.json')}:
+    #     img_file = f'train/{i}.jpg'
+    #     image = clip_numbers(
+    #         img_file,
+    #         'plot_header.jpg',
+    #         'taxpayer_header.jpg',
+    #         col_height=2350,
+    #         plot_col_width=82,
+    #         pop_col_width=1375,
+    #     )
+    #     h, w = image.shape
+    #     image = invert(image)
+    #
+    #     digit_filter = DigitFilter(
+    #         min_area=100,
+    #         max_area=500,
+    #         min_width=20,
+    #         min_height=30,
+    #     )
+    #
+    #     digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
+    #     labels, locs, images = digits_to_table(
+    #         digits,
+    #         (50, 50),
+    #         ground_truth_file=f'train/{i}_truth.json',
+    #     )
+    #     data.append(pd.concat([labels, images], axis=1))
+    #     print(i)
+    # data = pd.concat(data, axis=0, ignore_index=True)
+    #
+    # data.to_csv(data_fp)
 
     # fig, axes = plt.subplots(10, 10, figsize=(10, 6))
     # ax = axes.ravel()

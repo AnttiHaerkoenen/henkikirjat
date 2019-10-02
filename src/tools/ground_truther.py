@@ -63,6 +63,8 @@ if __name__ == '__main__':
         max_area=500,
         min_width=20,
         min_height=20,
+        max_width=100,
+        max_height=100,
     )
     jsons = [js.split('/')[-1] for js in glob.iglob('*.json')]
     for img in img_files:
