@@ -57,7 +57,7 @@ def save_ground_truth(
 
 if __name__ == '__main__':
     os.chdir('../../data/train')
-    img_files = glob.iglob('*.jpg')
+    img_files = sorted(glob.iglob('*.jpg'))
     digit_filter = DigitFilter(
         min_area=50,
         max_area=500,
