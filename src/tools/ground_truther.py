@@ -42,7 +42,10 @@ def save_ground_truth(
         key = cv2.waitKeyEx(0)
         if key == 97:  # a
             i -= 1
-        elif key == 100:  # d:
+        elif key == 100:  # d
+            i += 1
+        elif key == 101:  # e
+            characters[i] = None
             i += 1
         elif 48 <= key <= 57:  # digits
             characters[i] = str(key - 48)
