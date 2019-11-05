@@ -15,12 +15,8 @@ def save_ground_truth(
         digits,
         image=None,
         img_file,
-        json_file=None,
+        json_file,
 ):
-    if json_file is None:
-        json_file = '.'.join(img_file.split('.')[:-1])
-        json_file = f'{json_file}_truth.json'
-
     if image is None:
         image = imread(img_file)
 
@@ -34,7 +30,7 @@ def save_ground_truth(
             break
 
         bbox = digits[i].bbox
-        win_name = f'Digit {i} at {bbox[0]}, {bbox[1]} ({json_file})'
+        win_name = f"Digit {i} at {bbox[0]}, {bbox[1]} ({img_file.split('/')[-1]})"
         minr, minc, maxr, maxc = bbox
         box = image[minr:maxr, minc:maxc]
 
@@ -73,10 +69,11 @@ if __name__ == '__main__':
     jsons = [js.split('/')[-1] for js in glob.iglob('./labels/*.json')]
     for img in img_files:
         img_name = img.split('/')[-1]
-        print(img_name)
-        json_ = f"./labels/{img_name.split('.')[0]}_truth.json"
+        json_ = f"{img_name.split('.')[0]}_truth.json"
         if json_ in jsons:
             continue
+
+        print(img_name)
         image = clip_numbers(
             img,
             '../plot_header.jpg',
@@ -88,9 +85,12 @@ if __name__ == '__main__':
         h, w = image.shape
         image = invert(image)
         digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
+        json_file = '.'.join(img_name.split('.')[:-1])
+        json_file = f'./labels/{json_file}_truth.json'
         save_ground_truth(
             digits=digits,
             image=image,
             img_file=img,
+            json_file=json_file,
         )
         print(f"{img_name} saved.")
