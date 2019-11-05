@@ -34,7 +34,7 @@ def save_ground_truth(
             break
 
         bbox = digits[i].bbox
-        win_name = f'Digit {i} at {bbox[0]}, {bbox[1]}'
+        win_name = f'Digit {i} at {bbox[0]}, {bbox[1]} ({json_file})'
         minr, minc, maxr, maxc = bbox
         box = image[minr:maxr, minc:maxc]
 
@@ -70,11 +70,11 @@ if __name__ == '__main__':
         max_width=100,
         max_height=100,
     )
-    jsons = [js.split('/')[-1] for js in glob.iglob('*.json')]
+    jsons = [js.split('/')[-1] for js in glob.iglob('./labels/*.json')]
     for img in img_files:
         img_name = img.split('/')[-1]
         print(img_name)
-        json_ = f"{img_name.split('.')[0]}_truth.json"
+        json_ = f"./labels/{img_name.split('.')[0]}_truth.json"
         if json_ in jsons:
             continue
         image = clip_numbers(
@@ -93,3 +93,4 @@ if __name__ == '__main__':
             image=image,
             img_file=img,
         )
+        print(f"{img_name} saved.")
