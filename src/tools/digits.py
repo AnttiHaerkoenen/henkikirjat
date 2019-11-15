@@ -161,7 +161,7 @@ def save_training_data(
 
 if __name__ == '__main__':
     data_dir = '../../data/train/1900'
-    output_file = 'labels_1900.csv'
+    output_file = 'labeled_1900.csv'
     digit_filter = DigitFilter(
         min_area=50,
         max_area=500,

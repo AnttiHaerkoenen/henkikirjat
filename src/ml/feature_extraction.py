@@ -31,7 +31,7 @@ if __name__ == '__main__':
     input_ = 'labeled_1900.csv'
     output_ = 'downscaled_1900_10.csv'
     data = pd.read_csv(input_, index_col=0)
-    data = downscale_digits(data, (50, 50), (10, 10))
+    data = downscale_digits(data, (40, 40), (10, 10))
     data.to_csv(output_)
     data = pd.read_csv(output_, index_col=0)
     data = data[pd.notna(data['label'])]
