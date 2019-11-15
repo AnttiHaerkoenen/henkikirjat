@@ -27,11 +27,13 @@ def downscale_digits(
 
 
 if __name__ == '__main__':
-    os.chdir('../../data')
-    # data = pd.read_csv('labeled.csv', index_col=0)
-    # data = downscale_digits(data, (50, 50), (10, 10))
-    # data.to_csv('downscaled_10_10.csv')
-    data = pd.read_csv('downscaled_10_10.csv', index_col=0)
+    os.chdir('../../data/train/1900')
+    input_ = 'labeled_1900.csv'
+    output_ = 'downscaled_1900_10.csv'
+    data = pd.read_csv(input_, index_col=0)
+    data = downscale_digits(data, (50, 50), (10, 10))
+    data.to_csv(output_)
+    data = pd.read_csv(output_, index_col=0)
     data = data[pd.notna(data['label'])]
     for idx, row in data.tail(50).iterrows():
         view_digit(row, (10, 10))

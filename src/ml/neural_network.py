@@ -12,9 +12,7 @@ from src.ml.feature_extraction import downscale_digits
 
 
 if __name__ == '__main__':
-    split = 10000
-    os.chdir('../../data')
-    data = pd.read_csv('downscaled_10_10.csv')
+    data = pd.read_csv('../../data/train/1900/labels_1900.csv')
     data = data[pd.notna(data['label'])]
 
     X = data.drop(columns=['label'])
@@ -28,12 +26,12 @@ if __name__ == '__main__':
         random_state=42,
     )
     model = MLPClassifier(
-        hidden_layer_sizes=(100, 100),
-        max_iter=2000,
+        hidden_layer_sizes=(100,),
+        max_iter=3000,
     )
     model.fit(X_train, y_train)
     y_predict = model.predict(X_test)
-    errors = confusion_matrix(y_test, y_predict)
     report = classification_report(y_test, y_predict)
+    errors = confusion_matrix(y_test, y_predict)
     print(report)
     print(errors)

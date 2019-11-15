@@ -136,13 +136,14 @@ def save_training_data(
 ):
     os.chdir(data_dir)
     outf = Path(output_file)
+
     data = []
-    page_numbers = {
+    page_numbers = sorted([
         file.split('/')[-1].split('_')[0]
-        for file in glob.iglob(f"{data_dir}/*_truth.json")
-    }
+        for file in glob.iglob(f"./labels/*_truth.json")
+    ])
     for i in page_numbers:
-        img_file = f'train/{i}.jpg'
+        img_file = f'{i}.jpg'
         image = clip_numbers(img_file, **clip_numbers_param)
         image = invert(image)
 
@@ -150,17 +151,17 @@ def save_training_data(
         labels, locs, images = digits_to_table(
             digits,
             digit_shape,
-            ground_truth_file=f'train/{i}_truth.json',
+            ground_truth_file=f'./labels/{i}_truth.json',
         )
         data.append(pd.concat([labels, images], axis=1))
         print(i)
     data = pd.concat(data, axis=0, ignore_index=True)
-    data.to_csv(outf)
+    data.to_csv(str(outf))
 
 
 if __name__ == '__main__':
-    data_dir = ''
-    output_file = ''
+    data_dir = '../../data/train/1900'
+    output_file = 'labels_1900.csv'
     digit_filter = DigitFilter(
         min_area=50,
         max_area=500,
@@ -177,6 +178,8 @@ if __name__ == '__main__':
         col_height=2350,
         plot_col_width=82,
         pop_col_width=1375,
+        plot_header_file='../../plot_header.jpg',
+        taxpayer_header_file='../../taxpayer_header.jpg',
     )
     # os.chdir('../../data')
     # data_file = 'labeled.csv'
