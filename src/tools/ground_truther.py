@@ -55,7 +55,7 @@ def save_ground_truth(
 
 
 if __name__ == '__main__':
-    year = 1900
+    year = 1905
     os.chdir('../../data/train')
     img_files = sorted(glob.iglob(f'./{year}/*.jpg'))
     digit_filter = DigitFilter(
@@ -66,18 +66,18 @@ if __name__ == '__main__':
         max_width=100,
         max_height=100,
     )
-    jsons = [js.split('/')[-1] for js in glob.iglob('./labels/*.json')]
+    jsons = [js.split('/')[-1] for js in glob.iglob(f'./{year}/labels/*.json')]
     for img in img_files:
         img_name = img.split('/')[-1]
-        json_ = f"{img_name.split('.')[0]}_truth.json"
-        if json_ in jsons:
+        json_file = f"{img_name.split('.')[0]}_truth.json"
+        if json_file in jsons:
             continue
 
         print(img_name)
         image = clip_numbers(
             img,
-            '../plot_header.jpg',
-            '../taxpayer_header.jpg',
+            f'../headers/plot_header_{year}.jpg',
+            f'../headers/taxpayer_header_{year}.jpg',
             col_height=2350,
             plot_col_width=82,
             pop_col_width=1375,
@@ -85,12 +85,10 @@ if __name__ == '__main__':
         h, w = image.shape
         image = invert(image)
         digits = extract_digits(image, 600, None, digit_filter, do_closing=True)
-        json_file = '.'.join(img_name.split('.')[:-1])
-        json_file = f'./labels/{json_file}_truth.json'
         save_ground_truth(
             digits=digits,
             image=image,
             img_file=img,
-            json_file=json_file,
+            json_file=f"./{year}/labels/{json_file}",
         )
         print(f"{img_name} saved.")
