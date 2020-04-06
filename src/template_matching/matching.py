@@ -12,6 +12,7 @@ from src.template_matching.digits import Digits
 from src.template_matching.enums import TemplateMatchingMethod
 from src.template_matching.grid_to_json import make_page_grid
 from src.template_matching.parameters import CannyParam, GridParam
+import cv2
 
 
 def match_locations_to_rectangles(
@@ -42,11 +43,12 @@ def predict_page_content(
         grouping_distance: int,
         canny_parameters: CannyParam,
         grid_parameters: GridParam,
+        save_edges: bool = False,
         **hough_parameters
 ):
     os.chdir(data_dir)
     grid_path = Path(grid_file)
-    if make_page_grid:
+    if make_grid:
         make_page_grid(
             images=images,
             data_dir=os.curdir,
@@ -68,6 +70,8 @@ def predict_page_content(
             threshold_values=digit_threshold_values,
             grouping_distance=grouping_distance,
         )
+        if save_edges:
+            cv2.imwrite(f"{img_basename}_edges.jpg", digits.edges)
         rectangles = [Rectangle.from_json_dict(rect) for rect in grid[img_basename]]
         rectangles = match_locations_to_rectangles(digits, rectangles)
         grid[img_basename] = [rect.to_json_dict() for rect in rectangles]
@@ -86,7 +90,7 @@ if __name__ == '__main__':
     )
     canny_par = CannyParam(400, 1000)
     digit_thresholds = {
-        '1': 0.3,
+        '1': 0.2,
         '2': 0.2,
         '3': 0.2,
         '4': 0.2,
@@ -94,7 +98,7 @@ if __name__ == '__main__':
     }
     templates = {
         i: [
-            Path('./digit_templates/1900') / f"{i}_{j}.jpg" for j in [1, 2]
+            Path('./digit_templates/1900') / f"{i}_{j}.jpg" for j in "1 2 3 4 5".split()
         ] for i in "1 2 3 4 5".split()
     }
     predict_page_content(
@@ -114,4 +118,5 @@ if __name__ == '__main__':
         canny_high_thresh=150,
         hough_rho_res=1,
         hough_theta_res=np.pi/500,
+        save_edges=True,
     )
