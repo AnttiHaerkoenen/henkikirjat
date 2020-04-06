@@ -74,25 +74,30 @@ if __name__ == '__main__':
         dest='url',
         type=str,
         help=f'Address of containing unit after {DIGINARC}',
+        required=True,
     )
     parser.add_argument(
         '--first',
         dest='first',
         type=int,
         help='First page to download. Must be the text in a link.',
+        required=True,
     )
     parser.add_argument(
         '--last',
         dest='last',
         type=int,
         help='Last page to download.',
+        required=True,
     )
     parser.add_argument(
         '--dir',
         dest='directory',
         type=str,
         help='Where to put downloaded files. Created if doesn\'t exist.',
+        required=True,
     )
     args = parser.parse_args()
+
     pages = get_pic_ids(args.url, args.first, args.last)
     download_series_from_na(pages, args.directory)
