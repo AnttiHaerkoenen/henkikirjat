@@ -11,10 +11,10 @@ def crop_corner(
     w, h = image.size
 
     coords = {
-        'UL': (0, w // 2, 0, h // 2),
-        'UR': (w // 2, w, 0, h // 2),
-        'LR': (w // 2, w, h // 2, h),
-        'LL': (0, w // 2, h // 2, h),
+        'UL': (0, 0, w // 2, h // 2),
+        'UR': (w // 2, 0, w, h // 2),
+        'LR': (w // 2, h // 2, w, h),
+        'LL': (0, h // 2, w // 2, h),
     }
 
     image = image.crop(coords.get(corner, (0, w, 0, h)))
