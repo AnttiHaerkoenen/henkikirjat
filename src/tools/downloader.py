@@ -71,7 +71,7 @@ def get_pic_ids(url: str, start_page: int, last_page: int) -> dict:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Tool to load whole book part from digi.narc.fi")
+    parser = argparse.ArgumentParser(description="Tool to download whole book part from digi.narc.fi")
     parser.add_argument(
         '--url',
         dest='url',
